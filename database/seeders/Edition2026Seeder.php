@@ -20,7 +20,6 @@ class Edition2026Seeder extends Seeder
                 'user_com_list_id' => 17,
                 'user_com_link_field' => 'munoludy2026_link',
                 'user_com_code_field' => 'munoludy2026_kod',
-                'user_com_type_field' => 'munoludy2026_typ',
                 'starts_at' => now(),
                 'ends_at' => now()->addDays(30),
                 'status' => EditionStatus::Active,

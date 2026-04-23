@@ -8,9 +8,11 @@ use App\Http\Requests\SubmitVoteRequest;
 use App\Models\PageContent;
 use App\Models\Participant;
 use App\Models\Question;
+use App\Services\UserCom\UserComSyncService;
 use App\Services\Vote\VoteSessionManager;
 use App\Services\Vote\VoteSubmissionService;
 use Artesaos\SEOTools\Facades\SEOTools;
+use Illuminate\Support\Facades\Log;
 
 class VoteController extends Controller
 {
@@ -94,7 +96,7 @@ class VoteController extends Controller
         ]);
     }
 
-    public function submit(string $hash, VoteSubmissionService $service)
+    public function submit(string $hash, VoteSubmissionService $service, UserComSyncService $userCom)
     {
         $participant = $this->ensureAuthorized($hash);
         abort_unless($participant->edition->isVotingOpen(), 403);
@@ -106,6 +108,16 @@ class VoteController extends Controller
         } catch (\RuntimeException $e) {
             abort(409, 'Already voted');
         }
+
+        try {
+            $userCom->tagVoted($participant->fresh(), (int) config('munoludy.user_com.voted_tag_id'));
+        } catch (\Throwable $e) {
+            Log::error('user.com tag after vote failed', [
+                'participant_id' => $participant->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         $this->session->clear();
         return redirect()->route('vote.thank-you', ['hash' => $hash]);
     }

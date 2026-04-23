@@ -17,15 +17,20 @@ class JuryMemberResource extends Resource
 {
     protected static ?string $model = JuryMember::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-academic-cap';
+    protected static ?string $navigationLabel = 'Jury';
+    protected static ?string $modelLabel = 'Członek jury';
+    protected static ?string $pluralModelLabel = 'Jury';
+    protected static ?string $navigationGroup = 'Plebiscyt';
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Select::make('edition_id')->relationship('edition', 'name')->required(),
-            Forms\Components\TextInput::make('email')->email()->required(),
-            Forms\Components\TextInput::make('display_name'),
-            Forms\Components\Textarea::make('notes')->rows(3),
+            Forms\Components\Select::make('edition_id')->label('Edycja')->relationship('edition', 'name')->required(),
+            Forms\Components\TextInput::make('email')->label('E-mail')->email()->required(),
+            Forms\Components\TextInput::make('display_name')->label('Imię i nazwisko'),
+            Forms\Components\Textarea::make('notes')->label('Notatki')->rows(3),
         ]);
     }
 
