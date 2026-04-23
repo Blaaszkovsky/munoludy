@@ -20,6 +20,22 @@ it('answer groups resource loads', function () {
     $this->actingAs($this->admin)->get("/{$this->path}/answer-groups")->assertOk();
 });
 
+it('answer group view page loads', function () {
+    $edition = \App\Models\Edition::first();
+    $question = \App\Models\Question::where('edition_id', $edition->id)->first();
+    $group = \App\Models\AnswerGroup::create([
+        'question_id' => $question->id,
+        'canonical_label' => 'Test grupa analityczna',
+        'aggregated_count' => 3,
+        'aggregated_points' => 12,
+    ]);
+
+    $this->actingAs($this->admin)
+        ->get("/{$this->path}/answer-groups/{$group->id}")
+        ->assertOk()
+        ->assertSee('Test grupa analityczna');
+});
+
 it('page content list loads', function () {
     $this->actingAs($this->admin)->get("/{$this->path}/page-contents")->assertOk();
 });

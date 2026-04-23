@@ -10,6 +10,7 @@ class AnswerGroup extends Model
 
     protected $casts = [
         'is_locked' => 'boolean',
+        'is_podium' => 'boolean',
     ];
 
     public function question()
