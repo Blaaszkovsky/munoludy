@@ -21,7 +21,3 @@ Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->group(fun
 });
 
 Route::get('/wyniki/{editionSlug?}', [ResultsController::class, 'index'])->name('results');
-
-Route::get('/_smoke/layout', function () {
-    return view('_smoke-layout');
-})->name('smoke.layout');
