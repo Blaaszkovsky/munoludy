@@ -16,7 +16,7 @@ Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->group(fun
     Route::get('/krok/{n}', 'step')->name('vote.step')->whereNumber('n');
     Route::post('/krok/{n}', 'saveStep')->name('vote.save-step')->whereNumber('n');
     Route::get('/podsumowanie', 'summary')->name('vote.summary');
-    Route::post('/wyslij', 'submit')->name('vote.submit')->middleware('throttle:1,10');
+    Route::post('/wyslij', 'submit')->name('vote.submit');
     Route::get('/dziekujemy', 'thankYou')->name('vote.thank-you');
 });
 

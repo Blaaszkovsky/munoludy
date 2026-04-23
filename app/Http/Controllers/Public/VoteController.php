@@ -99,14 +99,22 @@ class VoteController extends Controller
     public function submit(string $hash, VoteSubmissionService $service, UserComSyncService $userCom)
     {
         $participant = $this->ensureAuthorized($hash);
+
+        if ($participant->hasVoted()) {
+            $this->session->clear();
+            return redirect()->route('vote.thank-you', ['hash' => $hash]);
+        }
+
         abort_unless($participant->edition->isVotingOpen(), 403);
+
         try {
             $service->submit($participant, $this->session->draft(), [
                 'ip' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
         } catch (\RuntimeException $e) {
-            abort(409, 'Already voted');
+            $this->session->clear();
+            return redirect()->route('vote.thank-you', ['hash' => $hash]);
         }
 
         try {
