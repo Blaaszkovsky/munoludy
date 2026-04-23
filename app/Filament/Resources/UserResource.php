@@ -48,7 +48,11 @@ class UserResource extends Resource
             Forms\Components\CheckboxList::make('roles')
                 ->label('Role')
                 ->relationship('roles', 'name')
-                ->options(fn () => Role::pluck('name', 'name')->all())
+                ->getOptionLabelFromRecordUsing(fn (Role $record) => match ($record->name) {
+                    'super_admin' => 'Super admin (pełny dostęp)',
+                    'editor' => 'Edytor (treści i ustawienia)',
+                    default => $record->name,
+                })
                 ->helperText('Tylko użytkownicy z rolą „super_admin" lub „editor" mają dostęp do panelu.')
                 ->columns(2)
                 ->required(),
