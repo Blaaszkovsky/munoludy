@@ -20,6 +20,15 @@ class Edition extends Model
         'status' => EditionStatus::class,
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (Edition $edition) {
+            if ($edition->is_active) {
+                static::where('id', '!=', $edition->id ?? 0)->update(['is_active' => false]);
+            }
+        });
+    }
+
     public function questions()
     {
         return $this->hasMany(Question::class);
