@@ -1,66 +1,135 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Munoludy
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Plebiscytowa aplikacja Muno (muzyczne podsumowania roku) zbudowana w Laravelu 11 z panelem administracyjnym Filament v3. Głosowanie jest dwuetapowe: rejestracja -> kod e-mail / token jury -> rankowane wybory -> podsumowanie wyników.
 
-## About Laravel
+Frontend publiczny odwzorowuje projekty z `../templates/` (Figma Make), panel administracyjny korzysta z domyślnego UI Filamenta.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- PHP 8.3+
+- Laravel 11
+- Filament PHP v3
+- MySQL / MariaDB (lokalnie WAMP)
+- Vite + Tailwind CSS v3
+- Pest (test runner)
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Current state
 
-## Learning Laravel
+- Phases 0-10 ukończone.
+- Test suite: 34 testy (Pest) przechodzą.
+- Pełny flow: rejestracja publiczna + jury, głosowanie rankowane, podsumowanie, publikacja wyników, panel administracyjny, CSV export.
+- Security hardening: `.htaccess` z nagłówkami i blokadą AI botów, `robots.txt`, rate limiting na rejestracji i głosowaniu.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Wymagania lokalne
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+- WAMP (Apache + MySQL) lub równoważnik
+- PHP 8.3+ z rozszerzeniami: `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `curl`, `gd`, `zip`, `intl`
+- Composer 2+
+- Node.js 20+ i npm
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Instalacja
 
-## Laravel Sponsors
+```bash
+# 1. Zainstaluj zależności
+composer install
+npm install
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 2. Skonfiguruj .env (skopiuj z .env.example)
+cp .env.example .env
+php artisan key:generate
 
-### Premium Partners
+# 3. Utwórz bazę MySQL "munoludy" (w phpMyAdmin lub CLI)
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# 4. Uruchom migracje, seedery, pobierz listę disposable e-maili,
+#    wylosuj tajny slug panelu admin
+php artisan munoludy:install
 
-## Contributing
+# 5. Zbuduj assety
+npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Vhost w Apache powinien wskazywać DocumentRoot na `d:/WWW/muno/munoludy/ml.muno.pl/public` i obsługiwać hosta `muno.local` (lokalnie) lub `ml.muno.pl` (produkcja).
 
-## Code of Conduct
+## Uruchomienie developerskie
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+# Apache przez WAMP obsłuży PHP
+# Asset watcher:
+npm run dev
+```
 
-## Security Vulnerabilities
+Strona publiczna: `http://muno.local/`.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Panel admina: `http://muno.local/<ADMIN_PANEL_PATH>` (wartość slugu jest w `.env` pod `ADMIN_PANEL_PATH`). Domyślne dane w `.env`:
 
-## License
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD` (zmień natychmiast po pierwszym logowaniu)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Struktura katalogów (kluczowe)
+
+```
+app/
+  Actions/           akcje domenowe (rejestracja, głosowanie)
+  Console/Commands/  munoludy:install
+  Filament/          resources, pages, widgets panelu
+  Http/Controllers/
+    Public/          LandingController, VoteController, ResultsController
+  Models/
+  Services/          UserCom, Turnstile, DisposableEmail, VoteSession...
+resources/
+  views/
+    layouts/
+    components/      Blade components (btn, header, footer, form-card,...)
+    vote/            widoki flow głosowania
+routes/web.php
+storage/app/disposable-domains.txt  (download via installer)
+public/.htaccess     (hardened)
+public/robots.txt
+```
+
+## Testy
+
+```bash
+php artisan test
+```
+
+Obecnie 34 testy obejmujące: modele, landing, rejestrację (public + jury), flow głosowania, panel admin (access, dashboard), publikację wyników.
+
+## Bezpieczeństwo
+
+- `.htaccess` dodaje: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, ukrywa `Server/X-Powered-By`.
+- Blokada znanych AI crawlerów (GPTBot, ClaudeBot, CCBot, PerplexityBot i in.) zarówno na poziomie `robots.txt`, jak i User-Agent w Apache.
+- Panel admin pod losowym slugiem (`ADMIN_PANEL_PATH`).
+- Rate limiting: rejestracja `3/60min`, weryfikacja kodu `5/5min`, submit głosu `1/10min`.
+- Walidacja disposable e-maili (offline lista z disposable-email-domains).
+- Cloudflare Turnstile przy formularzach publicznych (włączane przez `TURNSTILE_*` w `.env`).
+
+## Integracja user.com
+
+Skonfigurowana w `config/services.php` + `App\Services\UserCom\*`. Klucze:
+
+- `USER_COM_BASE_URL`
+- `USER_COM_API_KEY`
+
+Sync zarejestrowanych użytkowników leci w tle przez queue workera.
+
+## Deployment
+
+```bash
+php artisan queue:work    # workera trzymaj pod Supervisor / Task Scheduler
+php artisan schedule:run  # raz na minutę przez cron / Task Scheduler
+```
+
+Przed produkcją:
+
+- `APP_ENV=production`
+- `APP_DEBUG=false`
+- `SESSION_SECURE_COOKIE=true` (HTTPS)
+- skonfigurowana poczta (mailer inny niż `log`)
+
+## Przyszłe prace (future work, nieopracowane w tym wydaniu)
+
+- **CloneEdition** — komenda artisan klonująca poprzednią edycję plebiscytu (kopia kategorii, pytań, widoków panelu z adnotacją `Edycja N+1`). YAGNI do momentu gdy będzie realnie potrzebna.
+- **Sitemap generator** — `robots.txt` deklaruje `sitemap.xml`, ale plik jest statycznym stubem. Docelowo wygenerować przez `spatie/laravel-sitemap` na podstawie aktywnej edycji i publicznych tras (`/`, `/wyniki/...`).
+- **Eksport wyników w innych formatach** (PDF, JSON) oraz webhook do systemów zewnętrznych.
+- **Rozbudowany dashboard** (wykresy trendów, porównanie edycji).
