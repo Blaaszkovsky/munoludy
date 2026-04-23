@@ -1,49 +1,35 @@
 <?php
 
-use App\Models\User;
-
 uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
 
-it('admin dashboard loads with widgets without error', function () {
+beforeEach(function () {
     $this->seed();
-    $path = config('munoludy.admin_path');
-    $user = User::where('email', 'admin@muno.local')->first();
-    $this->actingAs($user)->get("/$path")->assertOk();
+    $this->path = config('munoludy.admin_path');
+    $this->admin = adminUser();
+});
+
+it('admin dashboard loads with widgets without error', function () {
+    $this->actingAs($this->admin)->get("/{$this->path}")->assertOk();
 });
 
 it('vote submissions resource loads', function () {
-    $this->seed();
-    $path = config('munoludy.admin_path');
-    $user = User::where('email', 'admin@muno.local')->first();
-    $this->actingAs($user)->get("/$path/vote-submissions")->assertOk();
+    $this->actingAs($this->admin)->get("/{$this->path}/vote-submissions")->assertOk();
 });
 
 it('answer groups resource loads', function () {
-    $this->seed();
-    $path = config('munoludy.admin_path');
-    $user = User::where('email', 'admin@muno.local')->first();
-    $this->actingAs($user)->get("/$path/answer-groups")->assertOk();
+    $this->actingAs($this->admin)->get("/{$this->path}/answer-groups")->assertOk();
 });
 
 it('page content list loads', function () {
-    $this->seed();
-    $path = config('munoludy.admin_path');
-    $user = User::where('email', 'admin@muno.local')->first();
-    $this->actingAs($user)->get("/$path/page-contents")->assertOk();
+    $this->actingAs($this->admin)->get("/{$this->path}/page-contents")->assertOk();
 });
 
 it('page content edit page loads for each seeded view', function () {
-    $this->seed();
-    $path = config('munoludy.admin_path');
-    $user = User::where('email', 'admin@muno.local')->first();
     foreach (\App\Models\PageContent::all() as $pc) {
-        $this->actingAs($user)->get("/$path/page-contents/{$pc->id}/edit")->assertOk();
+        $this->actingAs($this->admin)->get("/{$this->path}/page-contents/{$pc->id}/edit")->assertOk();
     }
 });
 
 it('results publisher page loads', function () {
-    $this->seed();
-    $path = config('munoludy.admin_path');
-    $user = User::where('email', 'admin@muno.local')->first();
-    $this->actingAs($user)->get("/$path/results-publisher")->assertOk();
+    $this->actingAs($this->admin)->get("/{$this->path}/results-publisher")->assertOk();
 });

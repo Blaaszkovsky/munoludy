@@ -60,10 +60,22 @@ npm run dev
 
 Strona publiczna: `http://muno.local/`.
 
-Panel admina: `http://muno.local/<ADMIN_PANEL_PATH>` (wartość slugu jest w `.env` pod `ADMIN_PANEL_PATH`). Domyślne dane w `.env`:
+Panel admina: `http://muno.local/<ADMIN_PANEL_PATH>` (wartość slugu w `.env` pod `ADMIN_PANEL_PATH`).
 
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD` (zmień natychmiast po pierwszym logowaniu)
+### Konta administratorów
+
+Zakładasz je komendą:
+
+```bash
+php artisan munoludy:make-admin
+```
+
+(prompty o imię, e-mail, hasło — możesz też przekazać przez opcje `--name --email --password --role=super_admin|editor`).
+
+Pierwszy admin zostanie utworzony automatycznie podczas `munoludy:install`. Kolejnych dodajesz w panelu: **System → Administratorzy → Nowy administrator** (widoczne tylko dla roli `super_admin`). Role:
+
+- `super_admin` — pełny dostęp, w tym zarządzanie administratorami.
+- `editor` — dostęp do panelu bez zarządzania administratorami.
 
 ## Struktura katalogów (kluczowe)
 

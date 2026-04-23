@@ -4,12 +4,29 @@
 |--------------------------------------------------------------------------
 | Test Case
 |--------------------------------------------------------------------------
-|
-| The closure you provide to your test functions is always bound to a specific PHPUnit test
-| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
-| need to change it using the "pest()" function to bind a different classes or traits.
-|
 */
 
 pest()->extend(Tests\TestCase::class)->in('Feature');
 pest()->extend(Tests\TestCase::class)->in('Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
+
+function adminUser(string $email = 'admin@muno.local'): \App\Models\User
+{
+    \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'web']);
+
+    $user = \App\Models\User::firstOrCreate(
+        ['email' => $email],
+        ['name' => 'Test Admin', 'password' => \Illuminate\Support\Facades\Hash::make('secret1234')]
+    );
+
+    if (!$user->hasRole('super_admin')) {
+        $user->assignRole('super_admin');
+    }
+
+    return $user;
+}

@@ -13,6 +13,7 @@ class InstallMunoludy extends Command
     protected $signature = 'munoludy:install
         {--skip-migrate : Skip running migrations and seeders}
         {--skip-disposable : Skip downloading disposable email domains list}
+        {--skip-admin : Skip the create-admin prompt}
         {--force-admin-path : Regenerate ADMIN_PANEL_PATH even if already set}';
 
     protected $description = 'One-shot installer: migrate, seed, download disposable domains, set random admin path.';
@@ -47,10 +48,34 @@ class InstallMunoludy extends Command
         $this->info('-> Clearing config cache...');
         Artisan::call('config:clear', [], $this->getOutput());
 
+        if (! $this->option('skip-admin')) {
+            $this->promptForAdminUser();
+        }
+
         $this->newLine();
         $this->info('Done. Admin panel path lives in .env as ADMIN_PANEL_PATH.');
 
         return self::SUCCESS;
+    }
+
+    private function promptForAdminUser(): void
+    {
+        $hasSuperAdmin = \App\Models\User::role('super_admin')->exists();
+
+        if ($hasSuperAdmin) {
+            $this->line('-> super_admin already exists; skipping admin creation.');
+            $this->line('   Use `php artisan munoludy:make-admin` later to add more.');
+            return;
+        }
+
+        $this->newLine();
+        $this->info('No super_admin found. Let\'s create one now.');
+        if (! $this->confirm('Create administrator account now?', true)) {
+            $this->warn('Skipped. Run `php artisan munoludy:make-admin` later to create an admin.');
+            return;
+        }
+
+        Artisan::call('munoludy:make-admin', [], $this->getOutput());
     }
 
     private function downloadDisposableDomains(): void
