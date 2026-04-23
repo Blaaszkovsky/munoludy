@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 
 class SiteSetting extends Model
 {
@@ -16,19 +18,35 @@ class SiteSetting extends Model
     public static function get(string $key, mixed $default = null): mixed
     {
         $row = static::where('key', $key)->first();
-        if (!$row) {
+
+        if (!$row || $row->value === null || $row->value === '') {
             return $default;
         }
-        return $row->is_encrypted ? Crypt::decryptString($row->value) : $row->value;
+
+        if (!$row->is_encrypted) {
+            return $row->value;
+        }
+
+        try {
+            return Crypt::decryptString($row->value);
+        } catch (DecryptException $e) {
+            Log::warning('SiteSetting decrypt failed, returning default', [
+                'key' => $key,
+                'reason' => $e->getMessage(),
+            ]);
+            return $default;
+        }
     }
 
     public static function set(string $key, ?string $value, bool $encrypt = false): void
     {
+        $hasValue = $value !== null && $value !== '';
+
         static::updateOrCreate(
             ['key' => $key],
             [
-                'value' => $encrypt && $value ? Crypt::encryptString($value) : $value,
-                'is_encrypted' => $encrypt,
+                'value' => $hasValue && $encrypt ? Crypt::encryptString($value) : $value,
+                'is_encrypted' => $hasValue && $encrypt,
             ]
         );
     }
