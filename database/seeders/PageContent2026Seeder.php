@@ -65,8 +65,9 @@ class PageContent2026Seeder extends Seeder
             ],
             'vote_thank_you' => [
                 'content' => [
-                    'title' => 'Dziękujemy za Twój głos!',
-                    'text' => 'Twoje odpowiedzi zostały zapisane. Wyniki plebiscytu pojawią się na stronie głównej po zakończeniu głosowania.',
+                    'title' => 'Dziękujemy!',
+                    'subtitle' => 'Twój głos został pomyślnie zapisany.',
+                    'text' => 'Dziękujemy za udział w plebiscycie Munoludy 2025. Twoje zdanie pomoże wyłonić najlepszych przedstawicieli polskiej sceny elektronicznej.',
                 ],
             ],
             'results' => [

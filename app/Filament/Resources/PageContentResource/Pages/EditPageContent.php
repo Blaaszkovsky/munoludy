@@ -103,10 +103,19 @@ class EditPageContent extends EditRecord
                 TextInput::make('content.form_subtitle')->label('Podtytuł'),
                 TextInput::make('content.form_email_label')->label('Etykieta pola e-mail'),
                 TextInput::make('content.form_email_placeholder')->label('Placeholder e-mail'),
-                Textarea::make('content.form_privacy_label')->label('Zgoda: polityka prywatności')->rows(2),
-                Textarea::make('content.form_marketing_label')->label('Zgoda: marketing')->rows(2),
                 TextInput::make('content.form_submit_label')->label('Etykieta przycisku'),
             ])->columns(2),
+
+            Section::make('Checkboxy (zgody)')->collapsible()->schema([
+                Textarea::make('content.form_privacy_label')
+                    ->label('Checkbox: polityka prywatności (wymagany)')
+                    ->helperText('Zaznacz gwiazdką * na końcu, jeśli ma być wyróżniony jako wymagany.')
+                    ->rows(3),
+                Textarea::make('content.form_marketing_label')
+                    ->label('Checkbox: zgoda marketingowa (opcjonalny)')
+                    ->helperText('Zaznaczenie tego checkboxa ustawia atrybut „Marketing email = true" w user.com.')
+                    ->rows(3),
+            ]),
 
             Section::make('Sukces rejestracji')->collapsible()->schema([
                 TextInput::make('content.success_title')->label('Tytuł sukcesu'),

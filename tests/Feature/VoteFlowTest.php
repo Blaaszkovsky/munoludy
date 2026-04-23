@@ -71,8 +71,11 @@ it('rejects wrong access code', function () {
     $this->post("/glosowanie/$hash/kod", ['code' => '999999'])->assertSessionHasErrors('code');
 });
 
-it('blocks second submission for same participant', function () {
+it('blocks second submission and shows thank-you for participant who already voted', function () {
     $hash = $this->p->link_hash;
     $this->p->update(['voted_at' => now()]);
-    $this->get("/glosowanie/$hash")->assertOk()->assertSee('Już zagłosowałeś');
+    $this->get("/glosowanie/$hash")
+        ->assertOk()
+        ->assertSee('Dziękujemy')
+        ->assertDontSee('Wprowadź kod dostępu');
 });

@@ -22,7 +22,7 @@ class VoteController extends Controller
     {
         $participant = $this->resolveParticipant($hash);
         if ($participant->hasVoted()) {
-            return view('vote.already-voted', ['participant' => $participant]);
+            return $this->renderThankYou($participant);
         }
         $edition = $participant->edition;
         if (!$edition->isVotingOpen()) {
@@ -124,10 +124,15 @@ class VoteController extends Controller
 
     public function thankYou(string $hash)
     {
-        $participant = $this->resolveParticipant($hash);
-        $edition = $participant->edition;
-        $content = PageContent::where('edition_id', $edition->id)->where('view', 'vote_thank_you')->firstOrFail();
-        return view('vote.thank-you', ['content' => $content->content]);
+        return $this->renderThankYou($this->resolveParticipant($hash));
+    }
+
+    private function renderThankYou(Participant $participant)
+    {
+        $content = PageContent::where('edition_id', $participant->edition_id)
+            ->where('view', 'vote_thank_you')
+            ->first();
+        return view('vote.thank-you', ['content' => $content?->content ?? []]);
     }
 
     private function resolveParticipant(string $hash): Participant
