@@ -1,3 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Mulish:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    :root {
+        --munoludy-bg: #11002d;
+        --munoludy-button-bg: #06d473;
+        --munoludy-button-text: #11002d;
+        --munoludy-text: #ffffff;
+        --munoludy-purple: #413357;
+        --munoludy-pink: #ff80e3;
+        --munoludy-purple-light: #675c79;
+        --munoludy-gray-light: #dbd7e2;
+        --munoludy-gray-lighter: #e9e4eb;
+        --font-heading: 'Syne', system-ui, sans-serif;
+        --font-body: 'Mulish', system-ui, sans-serif;
+    }
+
+    body {
+        font-family: var(--font-body);
+        background-color: var(--munoludy-bg);
+        color: var(--munoludy-text);
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-heading);
+    }
+}
