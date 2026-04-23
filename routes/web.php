@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Public\LandingController;
+use App\Http\Controllers\Public\ResultsController;
 use App\Http\Controllers\Public\VoteController;
 use Illuminate\Support\Facades\Route;
 
@@ -18,6 +19,8 @@ Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->group(fun
     Route::post('/wyslij', 'submit')->name('vote.submit')->middleware('throttle:1,10');
     Route::get('/dziekujemy', 'thankYou')->name('vote.thank-you');
 });
+
+Route::get('/wyniki/{editionSlug?}', [ResultsController::class, 'index'])->name('results');
 
 Route::get('/_smoke/layout', function () {
     return view('_smoke-layout');

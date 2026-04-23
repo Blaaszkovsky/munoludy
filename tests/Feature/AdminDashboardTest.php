@@ -24,3 +24,26 @@ it('answer groups resource loads', function () {
     $user = User::where('email', 'admin@muno.local')->first();
     $this->actingAs($user)->get("/$path/answer-groups")->assertOk();
 });
+
+it('page content list loads', function () {
+    $this->seed();
+    $path = config('munoludy.admin_path');
+    $user = User::where('email', 'admin@muno.local')->first();
+    $this->actingAs($user)->get("/$path/page-contents")->assertOk();
+});
+
+it('page content edit page loads for each seeded view', function () {
+    $this->seed();
+    $path = config('munoludy.admin_path');
+    $user = User::where('email', 'admin@muno.local')->first();
+    foreach (\App\Models\PageContent::all() as $pc) {
+        $this->actingAs($user)->get("/$path/page-contents/{$pc->id}/edit")->assertOk();
+    }
+});
+
+it('results publisher page loads', function () {
+    $this->seed();
+    $path = config('munoludy.admin_path');
+    $user = User::where('email', 'admin@muno.local')->first();
+    $this->actingAs($user)->get("/$path/results-publisher")->assertOk();
+});
