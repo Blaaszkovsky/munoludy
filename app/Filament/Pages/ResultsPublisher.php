@@ -4,9 +4,12 @@ namespace App\Filament\Pages;
 
 use App\Enums\EditionStatus;
 use App\Enums\FormAudience;
+use App\Models\Answer;
 use App\Models\AnswerGroup;
 use App\Models\Edition;
+use App\Models\Participant;
 use App\Models\Question;
+use App\Models\VoteSubmission;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -35,9 +38,57 @@ class ResultsPublisher extends Page
     }
 
     /**
-     * Return top answer groups for a given audience, grouped by question title.
+     * Aggregate engagement stats for a given edition.
      *
-     * @return array<string, array<int, array{label: string, points: int, count: int}>>
+     * @return array{
+     *   registered_total:int, registered_public:int, registered_jury:int,
+     *   voted_total:int, voted_pct:float,
+     *   answers_total:int, categories:int
+     * }
+     */
+    public function engagement(?Edition $edition): array
+    {
+        if (! $edition) {
+            return [
+                'registered_total' => 0, 'registered_public' => 0, 'registered_jury' => 0,
+                'voted_total' => 0, 'voted_pct' => 0.0,
+                'answers_total' => 0, 'categories' => 0,
+            ];
+        }
+
+        $registeredTotal = Participant::where('edition_id', $edition->id)->count();
+        $registeredPublic = Participant::where('edition_id', $edition->id)->where('type', 'public')->count();
+        $registeredJury = Participant::where('edition_id', $edition->id)->where('type', 'jury')->count();
+
+        $votedTotal = Participant::where('edition_id', $edition->id)
+            ->whereNotNull('voted_at')
+            ->count();
+
+        $votedPct = $registeredTotal > 0 ? round(($votedTotal / $registeredTotal) * 100, 1) : 0.0;
+
+        $answersTotal = Answer::whereHas('submission', fn ($q) => $q->where('edition_id', $edition->id))->count();
+
+        $categories = Question::where('edition_id', $edition->id)->count();
+
+        return [
+            'registered_total' => $registeredTotal,
+            'registered_public' => $registeredPublic,
+            'registered_jury' => $registeredJury,
+            'voted_total' => $votedTotal,
+            'voted_pct' => $votedPct,
+            'answers_total' => $answersTotal,
+            'categories' => $categories,
+        ];
+    }
+
+    /**
+     * Return top answer groups for a given audience, grouped by question.
+     *
+     * @return array<int, array{
+     *   question_id:int, title:string, audience:string,
+     *   unique_count:int, total_count:int,
+     *   top:array<int, array{id:int, label:string, points:int, count:int, pct:float, is_podium:bool, podium_position:?int}>
+     * }>
      */
     public function topPerCategory(string $audience, int $limit = 10): array
     {
@@ -55,24 +106,44 @@ class ResultsPublisher extends Page
         $questions = Question::query()
             ->where('edition_id', $edition->id)
             ->whereIn('audience', $audienceValues)
+            ->with(['answerGroups'])
             ->orderBy('order')
             ->get();
 
         $results = [];
 
         foreach ($questions as $question) {
-            $groups = AnswerGroup::query()
-                ->where('question_id', $question->id)
-                ->get()
+            $groups = $question->answerGroups
                 ->sortByDesc(fn (AnswerGroup $g) => $g->finalPoints())
-                ->take($limit)
                 ->values();
 
-            $results[$question->title ?? ('#' . $question->id)] = $groups->map(fn (AnswerGroup $g) => [
-                'label' => $g->canonical_label,
-                'points' => $g->finalPoints(),
-                'count' => $g->aggregated_count,
-            ])->all();
+            $uniqueCount = $groups->count();
+            $totalCount = (int) $groups->sum('aggregated_count');
+
+            $top = $groups->take($limit);
+            $topPoints = $top->first()?->finalPoints() ?: 0;
+
+            $items = $top->map(function (AnswerGroup $g) use ($topPoints) {
+                $pct = $topPoints > 0 ? round(($g->finalPoints() / $topPoints) * 100, 1) : 0.0;
+                return [
+                    'id' => $g->id,
+                    'label' => $g->canonical_label,
+                    'points' => $g->finalPoints(),
+                    'count' => (int) $g->aggregated_count,
+                    'pct' => $pct,
+                    'is_podium' => (bool) ($g->is_podium ?? false),
+                    'podium_position' => $g->podium_position,
+                ];
+            })->values()->all();
+
+            $results[] = [
+                'question_id' => $question->id,
+                'title' => $question->title ?? ('#' . $question->id),
+                'audience' => $question->audience?->value ?? 'public',
+                'unique_count' => $uniqueCount,
+                'total_count' => $totalCount,
+                'top' => $items,
+            ];
         }
 
         return $results;
@@ -124,10 +195,55 @@ class ResultsPublisher extends Page
         ];
     }
 
+    public function togglePodium(int $groupId): void
+    {
+        $group = AnswerGroup::find($groupId);
+        if (! $group) {
+            return;
+        }
+
+        if ($group->is_podium) {
+            $group->update(['is_podium' => false, 'podium_position' => null]);
+            Notification::make()->title('Usunięto z podium')->send();
+            return;
+        }
+
+        // Determine podium position within this question
+        $existing = AnswerGroup::where('question_id', $group->question_id)
+            ->where('is_podium', true)
+            ->pluck('podium_position')
+            ->filter()
+            ->values()
+            ->all();
+
+        $nextPosition = null;
+        foreach ([1, 2, 3] as $candidate) {
+            if (! in_array($candidate, $existing, true)) {
+                $nextPosition = $candidate;
+                break;
+            }
+        }
+
+        if ($nextPosition === null) {
+            Notification::make()->warning()
+                ->title('Podium pełne')
+                ->body('W tej kategorii wszystkie 3 pozycje podium są już zajęte.')
+                ->send();
+            return;
+        }
+
+        $group->update(['is_podium' => true, 'podium_position' => $nextPosition]);
+        Notification::make()->success()
+            ->title('Oznaczono jako ' . $nextPosition . '. miejsce')
+            ->send();
+    }
+
     protected function getViewData(): array
     {
+        $edition = $this->edition();
         return [
-            'edition' => $this->edition(),
+            'edition' => $edition,
+            'engagement' => $this->engagement($edition),
             'publicTops' => $this->topPerCategory('public'),
             'juryTops' => $this->topPerCategory('jury'),
         ];
