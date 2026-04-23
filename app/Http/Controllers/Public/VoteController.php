@@ -110,7 +110,7 @@ class VoteController extends Controller
         }
 
         try {
-            $userCom->tagVoted($participant->fresh(), (int) config('munoludy.user_com.voted_tag_id'));
+            $userCom->tagVoted($participant->fresh(), config('munoludy.user_com.voted_tag_name'));
         } catch (\Throwable $e) {
             Log::error('user.com tag after vote failed', [
                 'participant_id' => $participant->id,

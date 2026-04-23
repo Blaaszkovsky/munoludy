@@ -4,12 +4,22 @@ use App\Models\Edition;
 use App\Models\Participant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->seed();
     Cache::flush();
+    Http::preventStrayRequests();
+    Http::fake([
+        '*/api/public/users/search/*' => Http::response([
+            'id' => 'uc-voter-1',
+            'email' => 'voter@gmail.com',
+        ]),
+        '*/api/public/users/uc-voter-1/add_tag/' => Http::response([]),
+        '*/api/public/users/*/add_tag/' => Http::response([]),
+    ]);
     $this->edition = Edition::active();
     // Ensure voting window is clearly open (avoid edge case where starts_at == now()).
     $this->edition->update([
@@ -19,7 +29,8 @@ beforeEach(function () {
     $this->p = Participant::create([
         'edition_id' => $this->edition->id,
         'type' => 'public',
-        'email' => 'voter@example.com',
+        'email' => 'voter@gmail.com',
+        'user_com_user_id' => 'uc-voter-1',
         'link_hash' => str_repeat('b', 40),
         'access_code' => '123456',
     ]);

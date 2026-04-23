@@ -21,7 +21,7 @@ class UserComClient
 
     protected function http(): PendingRequest
     {
-        return Http::withHeaders([
+        $client = Http::withHeaders([
                 'Authorization' => 'Token '.$this->apiKey(),
                 'Accept' => 'application/json',
             ])
@@ -31,6 +31,13 @@ class UserComClient
                 config('munoludy.user_com.retry_sleep'),
                 throw: false
             );
+
+        $cacert = storage_path('app/cacert.pem');
+        if (is_file($cacert)) {
+            $client = $client->withOptions(['verify' => $cacert]);
+        }
+
+        return $client;
     }
 
     public function findUserByEmail(string $email): ?array
@@ -38,10 +45,10 @@ class UserComClient
         $resp = $this->http()->get($this->baseUrl().'/api/public/users/search/', ['email' => $email]);
         if ($resp->successful()) {
             $json = $resp->json();
-            if (is_array($json) && isset($json['id'])) {
+            if (\is_array($json) && isset($json['id'])) {
                 return $json;
             }
-            if (is_array($json) && isset($json['results']) && count($json['results']) > 0) {
+            if (\is_array($json) && isset($json['results']) && \count($json['results']) > 0) {
                 return $json['results'][0];
             }
         }
@@ -86,16 +93,9 @@ class UserComClient
     public function subscribeToList(string $userId, int $listId): bool
     {
         $resp = $this->http()->post(
-            $this->baseUrl().'/api/public/users/'.$userId.'/subscribe_to_mailing_list/',
-            ['mailing_list' => $listId]
+            $this->baseUrl().'/api/public/users/'.$userId.'/add_to_list/',
+            ['list' => $listId]
         );
-
-        if (!$resp->successful()) {
-            $resp = $this->http()->post(
-                $this->baseUrl().'/api/public/users/'.$userId.'/subscribe_to_list/',
-                ['list_id' => $listId]
-            );
-        }
 
         if (!$resp->successful()) {
             Log::warning('user.com subscribe failed', [
@@ -109,24 +109,17 @@ class UserComClient
         return $resp->successful();
     }
 
-    public function addTag(string $userId, int $tagId): bool
+    public function addTag(string $userId, string $tagName): bool
     {
         $resp = $this->http()->post(
-            $this->baseUrl().'/api/public/users/'.$userId.'/tag/',
-            ['tag' => $tagId]
+            $this->baseUrl().'/api/public/users/'.$userId.'/add_tag/',
+            ['name' => $tagName]
         );
-
-        if (!$resp->successful()) {
-            $resp = $this->http()->post(
-                $this->baseUrl().'/api/public/users/'.$userId.'/tags/',
-                ['tag_id' => $tagId]
-            );
-        }
 
         if (!$resp->successful()) {
             Log::warning('user.com tag failed', [
                 'user_id' => $userId,
-                'tag_id' => $tagId,
+                'tag_name' => $tagName,
                 'status' => $resp->status(),
                 'body' => substr($resp->body(), 0, 500),
             ]);

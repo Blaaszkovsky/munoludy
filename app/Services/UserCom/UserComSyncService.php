@@ -41,9 +41,9 @@ class UserComSyncService
         return $this->client->subscribeToList($userId, $edition->user_com_list_id);
     }
 
-    public function tagVoted(Participant $participant, ?int $tagId = null): bool
+    public function tagVoted(Participant $participant, ?string $tagName = null): bool
     {
-        $tagId = $tagId ?: (int) config('munoludy.user_com.voted_tag_id', 189);
+        $tagName = $tagName ?: (string) config('munoludy.user_com.voted_tag_name', 'munoludy2026_voted');
 
         $userId = $participant->user_com_user_id;
 
@@ -56,7 +56,7 @@ class UserComSyncService
             $participant->update(['user_com_user_id' => $userId]);
         }
 
-        return $this->client->addTag($userId, $tagId);
+        return $this->client->addTag($userId, $tagName);
     }
 
     private function fillMissingAttributes(string $userId, array $existing, array $desired): void

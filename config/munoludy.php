@@ -9,7 +9,7 @@ return [
         'timeout' => 10,
         'retry_times' => 3,
         'retry_sleep' => 1000,
-        'voted_tag_id' => env('USER_COM_VOTED_TAG_ID', 189),
+        'voted_tag_name' => env('USER_COM_VOTED_TAG_NAME', 'munoludy2026_voted'),
         'marketing_attribute_name' => env('USER_COM_MARKETING_ATTRIBUTE', 'Marketing email'),
     ],
 

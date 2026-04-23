@@ -14,10 +14,12 @@ beforeEach(function () {
     // Clear throttle and caches between tests so the POST /rejestracja throttle
     // (3 per 60 min) doesn't leak between tests.
     Cache::flush();
+    Http::preventStrayRequests();
     Http::fake([
-        '*/users/*' => Http::response(['results' => []]),
-        '*/users/' => Http::response(['id' => 'uc-1']),
-        '*/subscribe_to_list/' => Http::response([]),
+        '*/api/public/users/search/*' => Http::response([], 404),
+        '*/api/public/users/' => Http::response(['id' => 'uc-1']),
+        '*/api/public/users/uc-1/add_to_list/' => Http::response(['id' => 17], 201),
+        '*/api/public/users/uc-1/add_tag/' => Http::response([]),
     ]);
 });
 

@@ -9,12 +9,13 @@ use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
-it('creates new user, fills attributes and subscribes to list', function () {
+it('creates new user, sends marketing attribute and adds to list', function () {
     $this->seed();
+    Http::preventStrayRequests();
     Http::fake([
         '*/api/public/users/search/*' => Http::response([], 404),
         '*/api/public/users/' => Http::response(['id' => 'abc123']),
-        '*/api/public/users/abc123/*' => Http::response([]),
+        '*/api/public/users/abc123/add_to_list/' => Http::response(['id' => 17], 201),
     ]);
 
     $edition = Edition::active();
@@ -32,18 +33,24 @@ it('creates new user, fills attributes and subscribes to list', function () {
     expect($participant->fresh()->user_com_user_id)->toBe('abc123');
 
     Http::assertSent(function ($request) use ($edition) {
-        return str_contains($request->url(), '/api/public/users/')
+        return str_ends_with($request->url(), '/api/public/users/')
             && $request->method() === 'POST'
             && str_contains($request->header('Authorization')[0] ?? '', 'Token ')
             && ($request->data()[$edition->user_com_link_field] ?? null) !== null
             && ($request->data()[$edition->user_com_code_field] ?? null) === '123456'
             && ($request->data()['Marketing email'] ?? null) === true;
     });
+
+    Http::assertSent(function ($request) {
+        return str_ends_with($request->url(), '/add_to_list/')
+            && $request->method() === 'POST'
+            && ($request->data()['list'] ?? null) === 17;
+    });
 });
 
-it('when user exists patches only missing attributes and subscribes', function () {
+it('when user exists patches only missing attributes', function () {
     $this->seed();
-
+    Http::preventStrayRequests();
     Http::fake([
         '*/api/public/users/search/*' => Http::response([
             'id' => 'existing-42',
@@ -52,7 +59,8 @@ it('when user exists patches only missing attributes and subscribes', function (
                 ['name' => 'munoludy2026_link', 'value' => 'https://already-set/'],
             ],
         ]),
-        '*/api/public/users/existing-42/*' => Http::response([]),
+        '*/api/public/users/existing-42/' => Http::response([]),
+        '*/api/public/users/existing-42/add_to_list/' => Http::response(['id' => 17], 201),
     ]);
 
     $edition = Edition::active();
@@ -76,11 +84,14 @@ it('when user exists patches only missing attributes and subscribes', function (
     });
 });
 
-it('sends tag after voting', function () {
+it('sends add_tag with tag name after voting', function () {
     $this->seed();
+    Http::preventStrayRequests();
     Http::fake([
-        '*/api/public/users/abc999/tag/*' => Http::response([]),
-        '*/api/public/users/*/tags/*' => Http::response([]),
+        '*/api/public/users/abc999/add_tag/' => Http::response([
+            'created' => true,
+            'tag' => ['name' => 'munoludy2026_voted'],
+        ]),
     ]);
 
     $edition = Edition::active();
@@ -94,10 +105,11 @@ it('sends tag after voting', function () {
     ]);
 
     $service = new UserComSyncService(new UserComClient());
-    expect($service->tagVoted($participant, 189))->toBeTrue();
+    expect($service->tagVoted($participant, 'munoludy2026_voted'))->toBeTrue();
 
     Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/api/public/users/abc999/tag')
-            && $request->method() === 'POST';
+        return str_ends_with($request->url(), '/api/public/users/abc999/add_tag/')
+            && $request->method() === 'POST'
+            && ($request->data()['name'] ?? null) === 'munoludy2026_voted';
     });
 });
