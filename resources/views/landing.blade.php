@@ -2,7 +2,7 @@
     <x-header :title="$content['hero_title']" :poweredBy="$content['hero_powered_by']" />
     <main class="flex-1 px-8 py-12 md:px-16">
         <div class="max-w-4xl mx-auto">
-            <p class="text-white text-base md:text-lg leading-relaxed mb-16 font-body">{{ $content['intro'] }}</p>
+            <p class="text-black text-base md:text-lg leading-relaxed mb-16 font-body">{{ $content['intro'] }}</p>
             @if(session('registered_email'))
                 <x-form-card class="text-center">
                     <h2 class="text-3xl md:text-4xl mb-4 font-heading text-[var(--munoludy-text)]">{{ $content['success_title'] }}</h2>

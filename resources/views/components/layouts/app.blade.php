@@ -24,8 +24,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body class="min-h-screen bg-munoludy-bg font-body text-white antialiased">
-    <x-circular-pattern />
+<body class="muno-front min-h-screen bg-munoludy-bg font-body text-black antialiased">
+    <div class="fixed inset-0 -z-10 pointer-events-none bg-munoludy-bg bg-center bg-cover bg-no-repeat bg-fixed"
+         style="background-image: url('{{ asset('images/background.png') }}');"
+         aria-hidden="true"></div>
     <div class="relative z-10 min-h-screen flex flex-col">
         {{ $slot }}
     </div>

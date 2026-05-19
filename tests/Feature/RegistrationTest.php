@@ -63,3 +63,33 @@ it('rejects too-fast form submission (honeypot timing)', function () {
         'render_ts' => time(),
     ])->assertSessionHasErrors('website');
 });
+
+it('does NOT subscribe to user.com marketing list without marketing consent', function () {
+    $this->post('/rejestracja', [
+        'email' => 'no-marketing@gmail.com',
+        'privacy_consent' => '1',
+        'render_ts' => time() - 3,
+        // marketing_consent celowo pominięte
+    ])->assertRedirect('/');
+
+    expect(Participant::where('email', 'no-marketing@gmail.com')->first()->consented_marketing)->toBeFalse();
+
+    Http::assertNotSent(function ($request) {
+        return str_contains($request->url(), '/add_to_list/');
+    });
+});
+
+it('DOES subscribe to user.com marketing list with marketing consent', function () {
+    $this->post('/rejestracja', [
+        'email' => 'with-marketing@gmail.com',
+        'privacy_consent' => '1',
+        'marketing_consent' => '1',
+        'render_ts' => time() - 3,
+    ])->assertRedirect('/');
+
+    expect(Participant::where('email', 'with-marketing@gmail.com')->first()->consented_marketing)->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/add_to_list/');
+    });
+});

@@ -11,22 +11,25 @@ class UserComSyncService
     public function sync(Participant $participant): bool
     {
         $edition = $participant->edition;
+        $marketingAttr = (string) config('munoludy.user_com.marketing_attribute_name', 'Marketing email');
+        $hasMarketingConsent = (bool) $participant->consented_marketing;
 
+        // Atrybut zgody marketingowej ustawiamy zawsze (true gdy zaznaczona, false gdy nie),
+        // żeby w user.com odzwierciedlał rzeczywisty stan checkboxa z formularza.
         $attrs = [
             'email' => $participant->email,
             $edition->user_com_link_field => url('/glosowanie/'.$participant->link_hash),
             $edition->user_com_code_field => $participant->access_code,
+            $marketingAttr => $hasMarketingConsent,
         ];
-
-        if ($participant->consented_marketing) {
-            $attrs[config('munoludy.user_com.marketing_attribute_name', 'Marketing email')] = true;
-        }
 
         $existing = $this->client->findUserByEmail($participant->email);
 
         if ($existing && isset($existing['id'])) {
             $userId = (string) $existing['id'];
             $this->fillMissingAttributes($userId, $existing, $attrs);
+            // Marketing email synchronizujemy bezwarunkowo z aktualną zgodą
+            $this->client->updateUser($userId, [$marketingAttr => $hasMarketingConsent]);
         } else {
             $created = $this->client->createUser($attrs);
             if (!$created || !isset($created['id'])) {

@@ -1,31 +1,305 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Mulish:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+    font-family: 'Mulish';
+    src: url('/fonts/Mulish-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Mulish';
+    src: url('/fonts/Mulish-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Mulish';
+    src: url('/fonts/Mulish-ExtraBold.ttf') format('truetype');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+
 @layer base {
     :root {
         --munoludy-bg: #11002d;
-        --munoludy-button-bg: #06d473;
-        --munoludy-button-text: #11002d;
-        --munoludy-text: #ffffff;
-        --munoludy-purple: #413357;
+        /* Primary = różowy + czarny tekst */
+        --munoludy-button-bg: #ff80e3;
+        --munoludy-button-text: #000000;
+        /* Pozostałe (secondary) = zielony */
+        --munoludy-green: #06d473;
+        --munoludy-text: #000000;
         --munoludy-pink: #ff80e3;
+        --munoludy-purple: #413357;
         --munoludy-purple-light: #675c79;
         --munoludy-gray-light: #dbd7e2;
         --munoludy-gray-lighter: #e9e4eb;
-        --font-heading: 'Syne', system-ui, sans-serif;
+        --font-heading: 'Mulish', system-ui, sans-serif;
         --font-body: 'Mulish', system-ui, sans-serif;
     }
 
     body {
         font-family: var(--font-body);
+        font-weight: 500; /* Mulish Medium */
         background-color: var(--munoludy-bg);
         color: var(--munoludy-text);
     }
 
     h1, h2, h3, h4, h5, h6 {
         font-family: var(--font-heading);
+        font-weight: 800; /* Mulish ExtraBold */
+    }
+
+    strong, b {
+        font-weight: 700; /* Mulish Bold */
+    }
+
+    /* Bezpieczny fallback — wymuszone ukrycie wizualne, zachowane dla screen readerów */
+    .sr-only {
+        position: absolute !important;
+        width: 1px !important;
+        height: 1px !important;
+        padding: 0 !important;
+        margin: -1px !important;
+        overflow: hidden !important;
+        clip: rect(0, 0, 0, 0) !important;
+        white-space: nowrap !important;
+        border-width: 0 !important;
+    }
+}
+
+@layer components {
+    /* ---- Front-end "no-rounded" overrides (poza panelem Filament) ---- */
+    .muno-front [class*="rounded"],
+    .muno-front input,
+    .muno-front textarea,
+    .muno-front select,
+    .muno-front button,
+    .muno-front .muno-card {
+        border-radius: 0 !important;
+    }
+
+    .muno-front *:focus { outline: none; }
+    .muno-front *:focus-visible {
+        outline: 2px solid rgba(0, 0, 0, 0.55);
+        outline-offset: 2px;
+    }
+    .muno-front button:focus-visible,
+    .muno-front .muno-btn-primary:focus-visible,
+    .muno-front .muno-btn-secondary:focus-visible,
+    .muno-front .muno-btn-secondary-outline:focus-visible {
+        outline-color: currentColor;
+    }
+
+    /* ---- Centralny biały kafel ---- */
+    .muno-card {
+        background-color: #ffffff;
+        color: #000000;
+        padding: 2rem;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    }
+
+    @media (min-width: 768px) {
+        .muno-card {
+            padding: 3rem;
+        }
+    }
+
+    .muno-card,
+    .muno-card * {
+        color: #000000;
+    }
+
+    .muno-card .text-white,
+    .muno-card .text-white\/90,
+    .muno-card .text-white\/80,
+    .muno-card .text-white\/70,
+    .muno-card .text-white\/60,
+    .muno-card .text-white\/50,
+    .muno-card .text-white\/40,
+    .muno-card .text-white\/30 {
+        color: #000000 !important;
+    }
+
+    .muno-card .text-\[var\(--munoludy-text\)\] {
+        color: #000000 !important;
+    }
+
+    /* Akcent zielony w muno-card (np. numery pozycji w summary) */
+    .muno-card .text-\[var\(--munoludy-button-bg\)\] {
+        color: var(--munoludy-button-bg) !important;
+    }
+
+    .muno-card .placeholder-white\/40::placeholder {
+        color: rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .muno-card .border-white\/30,
+    .muno-card .border-white\/20,
+    .muno-card .border-white\/10 {
+        border-color: rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .muno-card .bg-white\/10,
+    .muno-card .bg-white\/5 {
+        background-color: #f5f3f7 !important;
+    }
+
+    /* Fix dla bg-[var(--munoludy-pink)]/80 — opacity nie działa z var() w Tailwind,
+       więc nadpisujemy konkretne klasy używane w widokach */
+    .muno-card .bg-\[var\(--munoludy-pink\)\]\/80,
+    .bg-\[var\(--munoludy-pink\)\]\/80 {
+        background-color: rgba(255, 128, 227, 0.8) !important;
+    }
+    .muno-card .bg-\[var\(--munoludy-pink\)\]\/70,
+    .bg-\[var\(--munoludy-pink\)\]\/70 {
+        background-color: rgba(255, 128, 227, 0.7) !important;
+    }
+
+    /* Inputy wewnątrz muno-card */
+    .muno-card input[type="text"],
+    .muno-card input[type="email"],
+    .muno-card input[type="number"],
+    .muno-card input[type="password"],
+    .muno-card input[type="search"],
+    .muno-card input[type="tel"],
+    .muno-card textarea,
+    .muno-card select {
+        background-color: #f5f3f7;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        color: #000000;
+    }
+
+    .muno-card input::placeholder,
+    .muno-card textarea::placeholder {
+        color: rgba(0, 0, 0, 0.4);
+    }
+
+    .muno-card input[type="checkbox"],
+    .muno-card input[type="radio"] {
+        background-color: #ffffff;
+        border-color: var(--munoludy-button-bg);
+        accent-color: var(--munoludy-button-bg);
+    }
+
+    /* Różowy check mark na białym tle (override Tailwind Forms domyślny biały) */
+    .muno-card input[type="checkbox"]:checked,
+    .muno-front input[type="checkbox"]:checked {
+        background-color: #ffffff !important;
+        border-color: var(--munoludy-button-bg) !important;
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%23ff80e3' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e") !important;
+        background-size: 100% 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: var(--munoludy-button-bg) !important;
+    }
+
+    /* Różowa kropka radio na białym tle */
+    .muno-card input[type="radio"]:checked,
+    .muno-front input[type="radio"]:checked {
+        background-color: #ffffff !important;
+        border-color: var(--munoludy-button-bg) !important;
+        background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%23ff80e3' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3.5'/%3e%3c/svg%3e") !important;
+        background-size: 100% 100%;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: var(--munoludy-button-bg) !important;
+    }
+
+    /* ---- PRIMARY (różowy + czarny tekst) ---- */
+    .muno-btn-primary {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-weight: 800;
+        font-size: 1.125rem;
+        font-family: var(--font-heading);
+        background-color: var(--munoludy-button-bg);
+        color: var(--munoludy-button-text);
+        border: 1px solid var(--munoludy-button-bg);
+        transition: all .25s ease;
+    }
+    .muno-btn-primary:hover {
+        background-color: #ff66dc;
+        transform: scale(1.02);
+    }
+    .muno-btn-primary:active { transform: scale(0.98); }
+    .muno-btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ---- SECONDARY / "pozostałe" (zielony) ---- */
+    .muno-btn-secondary {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-weight: 800;
+        font-size: 1.125rem;
+        font-family: var(--font-heading);
+        background-color: var(--munoludy-green);
+        color: #000000;
+        border: 1px solid var(--munoludy-green);
+        transition: all .25s ease;
+    }
+    .muno-btn-secondary:hover {
+        background-color: #05bf67;
+    }
+
+    .muno-btn-secondary-outline {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        font-weight: 800;
+        font-size: 1.125rem;
+        font-family: var(--font-heading);
+        background-color: transparent;
+        color: var(--munoludy-green);
+        border: 2px solid var(--munoludy-green);
+        transition: all .25s ease;
+    }
+    .muno-btn-secondary-outline:hover {
+        background-color: rgba(6, 212, 115, 0.12);
+    }
+
+    /* ---- Pasek kroków (widoczny na obrazku) ---- */
+    .muno-step-bar {
+        background-color: #ffffff;
+        height: .5rem;
+        overflow: hidden;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .muno-step-bar > span {
+        display: block;
+        height: 100%;
+        background-color: var(--munoludy-button-bg);
+        transition: width .5s ease;
+    }
+    .muno-step-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+        background-color: #ffffff;
+        color: #000000;
+        padding: .25rem .75rem;
+        font-weight: 700;
+        font-family: var(--font-body);
+        font-size: .9rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .muno-step-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        background-color: #ffffff;
+        color: var(--munoludy-button-bg);
+        border: 2px solid var(--munoludy-button-bg);
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: 1.25rem;
+    }
+    @media (min-width: 768px) {
+        .muno-step-number { width: 3.5rem; height: 3.5rem; font-size: 1.5rem; }
     }
 }
