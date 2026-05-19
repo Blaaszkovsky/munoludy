@@ -107,8 +107,16 @@ class VoteController extends Controller
 
         abort_unless($participant->edition->isVotingOpen(), 403);
 
+        $draft = $this->session->draft();
+        $missing = $this->unansweredQuestions($this->questionsFor($participant), $draft);
+        if ($missing->isNotEmpty()) {
+            return redirect()->route('vote.summary', ['hash' => $hash])
+                ->withErrors(['vote' => 'W każdej kategorii musisz oddać co najmniej jeden głos. Uzupełnij brakujące kategorie i spróbuj ponownie.'])
+                ->with('missing_questions', $missing->pluck('title')->all());
+        }
+
         try {
-            $service->submit($participant, $this->session->draft(), [
+            $service->submit($participant, $draft, [
                 'ip' => request()->ip(),
                 'user_agent' => request()->userAgent(),
             ]);
@@ -164,5 +172,30 @@ class VoteController extends Controller
             ->whereIn('audience', [$participant->type->value, 'both'])
             ->orderBy('order')
             ->get();
+    }
+
+    /**
+     * Kategorie (pytania), w których nie oddano żadnego niepustego głosu.
+     * Wymóg: w każdej kategorii musi paść co najmniej 1 głos w dowolnej punktacji.
+     */
+    private function unansweredQuestions($questions, array $draft)
+    {
+        return $questions->filter(function ($question) use ($draft) {
+            return !$this->hasAnyValue($draft[$question->id] ?? []);
+        })->values();
+    }
+
+    private function hasAnyValue($values): bool
+    {
+        foreach ((array) $values as $value) {
+            if (is_array($value)) {
+                if ($this->hasAnyValue($value)) {
+                    return true;
+                }
+            } elseif (trim((string) $value) !== '') {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -3,6 +3,9 @@
 return [
     'admin_path' => env('ADMIN_PANEL_PATH', 'admin'),
 
+    // Adres, pod który prowadzi logotyp Munoludy w nagłówku.
+    'logo_url' => env('MUNOLUDY_LOGO_URL', 'https://ml.muno.pl'),
+
     'user_com' => [
         'base_url' => env('USER_COM_BASE_URL', 'https://kicket.user.com'),
         'api_key' => env('USER_COM_API_KEY'),

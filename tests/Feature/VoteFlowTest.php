@@ -66,6 +66,26 @@ it('completes full vote flow for public participant', function () {
     expect($this->p->fresh()->submission->total_points)->toBeGreaterThan(0);
 });
 
+it('blocks submission when a category has no vote', function () {
+    $hash = $this->p->link_hash;
+
+    $this->post("/glosowanie/$hash/kod", ['code' => '123456'])->assertRedirect();
+
+    // Fill only the first category, leave the remaining ones empty.
+    $first = $this->edition->questions()->where('audience', 'public')->orderBy('order')->first();
+    $this->post("/glosowanie/$hash/krok/1", [
+        'answers' => [$first->id => [1 => 'DJ Hazel']],
+        'direction' => 'next',
+    ])->assertRedirect();
+
+    Cache::flush();
+    $this->post("/glosowanie/$hash/wyslij")
+        ->assertRedirect("/glosowanie/$hash/podsumowanie")
+        ->assertSessionHasErrors('vote');
+
+    expect($this->p->fresh()->voted_at)->toBeNull();
+});
+
 it('rejects wrong access code', function () {
     $hash = $this->p->link_hash;
     $this->post("/glosowanie/$hash/kod", ['code' => '999999'])->assertSessionHasErrors('code');

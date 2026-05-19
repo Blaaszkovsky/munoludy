@@ -16,7 +16,7 @@ class Edition2026Seeder extends Seeder
         $edition = Edition::firstOrCreate(
             ['slug' => 'munoludy-2026'],
             [
-                'name' => 'Munoludy 2026',
+                'name' => 'Munoludy 2025',
                 'user_com_list_id' => 17,
                 'user_com_link_field' => 'munoludy2026_link',
                 'user_com_code_field' => 'munoludy2026_kod',

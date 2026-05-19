@@ -5,13 +5,23 @@
             <p class="text-black text-base md:text-lg text-center leading-relaxed mb-8 font-body">
                 Sprawdź swoje odpowiedzi przed wysłaniem.
             </p>
+            @php($missingTitles = (array) session('missing_questions', []))
+            @if($errors->has('vote'))
+                <div class="mb-8 p-4 md:p-5 rounded-2xl bg-red-50 border border-red-300 text-red-800 text-sm md:text-base font-body" role="alert">
+                    {{ $errors->first('vote') }}
+                </div>
+            @endif
             <div class="space-y-6 mb-8">
                 @foreach($questions as $i => $q)
-                    <div class="muno-card !p-6 md:!p-8">
+                    @php($isMissing = in_array($q->title, $missingTitles, true))
+                    <div class="muno-card !p-6 md:!p-8 {{ $isMissing ? 'ring-2 ring-red-400' : '' }}">
                         <div class="flex items-start justify-between gap-4 mb-4">
                             <h3 class="text-xl md:text-2xl font-heading">{{ $q->title }}</h3>
                             <a href="{{ route('vote.step', ['hash' => $hash, 'n' => $i + 1]) }}" class="px-4 py-2 rounded-xl text-sm text-[var(--munoludy-button-bg)] hover:bg-[var(--munoludy-button-bg)]/10 transition">Edytuj</a>
                         </div>
+                        @if($isMissing)
+                            <p class="mb-4 text-sm text-red-600 font-body">Ta kategoria wymaga co najmniej jednego głosu.</p>
+                        @endif
                         <ul class="space-y-1 pl-1">
                             @foreach(($draft[$q->id] ?? []) as $pos => $val)
                                 @if($val)

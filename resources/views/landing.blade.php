@@ -9,6 +9,9 @@
                     <p class="text-white/80 text-base md:text-lg font-body">
                         {!! str_replace(':email', '<strong>'.e(session('registered_email')).'</strong>', $content['success_text']) !!}
                     </p>
+                    <p class="text-white/60 text-sm font-body mt-6">
+                        {{ $content['success_hint'] ?? 'Nie widzisz maila? Sprawdź folder SPAM.' }}
+                    </p>
                 </x-form-card>
             @else
                 <x-form-card>
@@ -20,14 +23,14 @@
                         <input type="hidden" name="render_ts" value="{{ $renderTs }}">
                         <x-text-input name="email" type="email" :label="$content['form_email_label']" :placeholder="$content['form_email_placeholder']" required />
                         <div class="space-y-4">
-                            <label class="flex items-start gap-3 cursor-pointer group">
-                                <input type="checkbox" name="privacy_consent" value="1" required class="mt-1 w-5 h-5 rounded border-white/30 bg-white/10 text-[var(--munoludy-button-bg)]">
-                                <span class="text-white/90 text-sm">{{ $content['form_privacy_label'] }}</span>
-                            </label>
-                            <label class="flex items-start gap-3 cursor-pointer group">
-                                <input type="checkbox" name="marketing_consent" value="1" class="mt-1 w-5 h-5 rounded border-white/30 bg-white/10">
-                                <span class="text-white/90 text-sm">{{ $content['form_marketing_label'] }}</span>
-                            </label>
+                            <div class="flex items-start gap-3">
+                                <input type="checkbox" id="privacy_consent" name="privacy_consent" value="1" required class="mt-1 w-5 h-5 rounded border-white/30 bg-white/10 text-[var(--munoludy-button-bg)]">
+                                <label for="privacy_consent" class="text-white/90 text-sm cursor-pointer [&_a]:underline [&_a:hover]:text-white">{!! $content['form_privacy_label'] !!}</label>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <input type="checkbox" id="marketing_consent" name="marketing_consent" value="1" class="mt-1 w-5 h-5 rounded border-white/30 bg-white/10">
+                                <label for="marketing_consent" class="text-white/90 text-sm cursor-pointer">{{ $content['form_marketing_label'] }}</label>
+                            </div>
                         </div>
                         @if(config('munoludy.turnstile.site_key'))
                             <div class="cf-turnstile" data-sitekey="{{ config('munoludy.turnstile.site_key') }}"></div>
