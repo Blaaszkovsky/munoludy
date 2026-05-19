@@ -5,10 +5,11 @@
             <p class="text-black text-base md:text-lg text-center leading-relaxed mb-8 font-body">
                 Sprawdź swoje odpowiedzi przed wysłaniem.
             </p>
-            @php($missingTitles = (array) session('missing_questions', []))
-            @if($errors->has('vote'))
+            @php($missingTitles = (array) ($missingTitles ?? session('missing_questions', [])))
+            @php($voteError = $voteError ?? ($errors->has('vote') ? $errors->first('vote') : null))
+            @if($voteError)
                 <div class="mb-8 p-4 md:p-5 rounded-2xl bg-red-50 border border-red-300 text-red-800 text-sm md:text-base font-body" role="alert">
-                    {{ $errors->first('vote') }}
+                    {{ $voteError }}
                 </div>
             @endif
             <div class="space-y-6 mb-8">

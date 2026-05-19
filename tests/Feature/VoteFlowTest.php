@@ -79,18 +79,15 @@ it('blocks submission when a category has no vote', function () {
     ])->assertRedirect();
 
     Cache::flush();
+    // Błędy renderowane wprost w odpowiedzi na POST (422), bez redirectu na
+    // cache'owany GET — komunikaty pojawiają się niezależnie od Cloudflare.
     $this->post("/glosowanie/$hash/wyslij")
-        ->assertRedirect("/glosowanie/$hash/podsumowanie")
-        ->assertSessionHasErrors('vote');
+        ->assertStatus(422)
+        ->assertSee('W każdej kategorii musisz oddać co najmniej jeden głos', false)
+        ->assertSee('Ta kategoria wymaga co najmniej jednego głosu', false)
+        ->assertHeader('CDN-Cache-Control', 'no-store');
 
     expect($this->p->fresh()->voted_at)->toBeNull();
-
-    // Strona podsumowania nie może być cache'owana (Cloudflare/CDN),
-    // inaczej komunikaty walidacji nie pojawią się po przekierowaniu.
-    // Symfony sortuje dyrektywy alfabetycznie — ważne, że jest 'no-store'.
-    $this->get("/glosowanie/$hash/podsumowanie")
-        ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-cache, no-store, private')
-        ->assertHeader('CDN-Cache-Control', 'no-store');
 });
 
 it('rejects wrong access code', function () {

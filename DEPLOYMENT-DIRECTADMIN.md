@@ -319,32 +319,26 @@ W koncie user.com muszą istnieć:
 
 ## 13. Cloudflare — cache stron dynamicznych
 
-Trasy `/` (po rejestracji), `/rejestracja` i całe `/glosowanie/*` zależą od
-sesji. Aplikacja wysyła na nich nagłówki `Cache-Control: no-store, private`
-oraz `CDN-Cache-Control: no-store`, więc przy **domyślnym** trybie cache
-Cloudflare (Standard) działają poprawnie.
+**Komunikaty walidacji głosowania działają bez żadnej konfiguracji Cloudflare.**
+Gdy wysłanie głosu nie przejdzie walidacji (pusta kategoria), aplikacja
+**renderuje podsumowanie wprost w odpowiedzi na POST** (status `422`), zamiast
+robić redirect na cache'owany GET. Cloudflare **nigdy nie cache'uje odpowiedzi
+POST**, więc komunikaty „W każdej kategorii musisz oddać co najmniej jeden
+głos…" i „Ta kategoria wymaga co najmniej jednego głosu" pojawiają się zawsze —
+nawet przy regule „Cache Everything" i bez dostępu do panelu Cloudflare.
 
-⚠️ Jeśli masz **Page Rule / Cache Rule z „Cache Everything"** (albo agresywny
-APO), Cloudflare może zignorować te nagłówki i serwować z brzegu starą stronę —
-objaw: po próbie wysłania głosu z pustą kategorią **nie pokazują się**
-komunikaty „W każdej kategorii musisz oddać co najmniej jeden głos…" ani
-„Ta kategoria wymaga co najmniej jednego głosu". Po wyłączeniu cache działa.
+Dodatkowo na trasach zależnych od sesji (`/glosowanie/*`, `/rejestracja`)
+aplikacja wysyła `Cache-Control: no-store` + `CDN-Cache-Control: no-store`.
 
-Napraw to w Cloudflare jedną z dróg (zalecana pierwsza):
-
-- **Cache Rule – Bypass cache** (Caching → Cache Rules → Create):
-  - Gdy: `URI Path` `starts with` `/glosowanie/` **OR** `URI Path` equals
-    `/rejestracja` **OR** `URI Path` equals `/`
-  - Then: **Bypass cache**
-- albo **Bypass Cache on Cookie**: w regule dla „Cache Everything" dodaj
-  warunek omijania cache, gdy występuje cookie `laravel_session` lub
-  `munoludy_session` / `XSRF-TOKEN` (czyli dla zalogowanych/uczestników).
-- albo zawęź regułę „Cache Everything" wyłącznie do statyków
-  (`/build/*`, `/images/*`, `/fonts/*`), a nie do całej domeny.
-
-Po zmianie wyczyść cache: Cloudflare → Caching → **Purge Everything**.
-Nie cache'uj `/glosowanie/*` — to strony chronione kodem dostępu (cache na
-CDN groziłby też wyciekiem cudzego draftu/podsumowania).
+⚠️ **Pozostały temat (bezpieczeństwo, nie blokuje uruchomienia):** strony
+`GET /glosowanie/*` są chronione kodem dostępu i zawierają draft/podsumowanie
+uczestnika. Przy domyślnym trybie Cloudflare nie są cache'owane (cookie sesji +
+nagłówki no-store). Jeśli jednak ktoś **wymusił „Cache Everything" na całej
+domenie**, te nagłówki mogą zostać zignorowane i teoretycznie da się
+zcache'ować podsumowanie jednego uczestnika i pokazać innemu. Sama
+funkcjonalność (komunikaty) działa mimo to, ale gdy będziesz mieć kontakt do
+osoby zarządzającej Cloudflare, poproś o **Bypass cache** dla `/glosowanie/*`
+(albo „Bypass on Cookie" dla cookie sesji), żeby zamknąć ten wektor.
 
 `/wyniki` można spokojnie cache'ować (publiczne, bez danych sesji).
 
@@ -430,7 +424,7 @@ Wcześniej `mkdir -p ~/backups`. Trzymaj backupy poza katalogiem publicznym
 | user.com 401 | Zły `USER_COM_API_KEY` — klucz musi być z `kicket.user.com` |
 | user.com 404 na subscribe | Lista 17 nie istnieje — utwórz w user.com lub zmień ID w panelu Edycji |
 | 429 przy rejestracji | Limit antyspamowy (IP+e-mail). Reset: `php artisan cache:clear` |
-| Brak komunikatów walidacji głosowania, znika po wyłączeniu cache CF | Cloudflare „Cache Everything" cache'uje `/glosowanie/*` — patrz §13 (Cache Rule Bypass / Bypass on Cookie) i Purge Everything |
+| Brak komunikatów walidacji głosowania | Od wersji z renderem na POST (422) działa bez CF. Jeśli nadal brak — wgraj najnowszy `main` i `php artisan optimize:clear && route:cache` (patrz §13) |
 
 ---
 
@@ -444,9 +438,9 @@ Wcześniej `mkdir -p ~/backups`. Trzymaj backupy poza katalogiem publicznym
 - [ ] Panel admina pod losowym slugiem, konto super-admina utworzone
 - [ ] Turnstile: oba klucze ustawione (aktywny) **albo** oba puste (świadomie
       wyłączony); user.com (lista 17 + atrybuty + automatyzacje) gotowe
-- [ ] Cloudflare nie cache'uje `/glosowanie/*`, `/rejestracja`, `/` po
-      rejestracji (§13) — sprawdzone z włączonym cache
-- [ ] Smoke test §14 przeszedł, w tym blokada wysyłki z pustą kategorią
-      (komunikaty widoczne **przy włączonym** cache Cloudflare)
+- [ ] Smoke test §14 przeszedł, w tym blokada wysyłki z pustą kategorią —
+      komunikaty widoczne **przy włączonym** cache Cloudflare (render na POST)
+- [ ] (opcjonalnie, bezpieczeństwo) jeśli jest dostęp do CF: `/glosowanie/*`
+      omijane przez cache (§13)
 - [ ] Backup cron działa, katalog backupów poza `public_html`
 ```

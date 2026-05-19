@@ -87,12 +87,18 @@ class VoteController extends Controller
     public function summary(string $hash)
     {
         $participant = $this->ensureAuthorized($hash);
-        $questions = $this->questionsFor($participant);
+        return $this->summaryView($participant, $hash);
+    }
+
+    private function summaryView(Participant $participant, string $hash, ?string $voteError = null, array $missingTitles = [])
+    {
         return view('vote.summary', [
             'participant' => $participant,
-            'questions' => $questions,
+            'questions' => $this->questionsFor($participant),
             'draft' => $this->session->draft(),
             'hash' => $hash,
+            'voteError' => $voteError,
+            'missingTitles' => $missingTitles,
         ]);
     }
 
@@ -110,9 +116,15 @@ class VoteController extends Controller
         $draft = $this->session->draft();
         $missing = $this->unansweredQuestions($this->questionsFor($participant), $draft);
         if ($missing->isNotEmpty()) {
-            return redirect()->route('vote.summary', ['hash' => $hash])
-                ->withErrors(['vote' => 'W każdej kategorii musisz oddać co najmniej jeden głos. Uzupełnij brakujące kategorie i spróbuj ponownie.'])
-                ->with('missing_questions', $missing->pluck('title')->all());
+            // Render bezpośrednio jako odpowiedź na POST (status 422) — Cloudflare
+            // nie cache'uje POST, więc komunikaty pojawią się niezależnie od
+            // konfiguracji CDN (brak zależności od redirectu na cache'owany GET).
+            return response($this->summaryView(
+                $participant,
+                $hash,
+                'W każdej kategorii musisz oddać co najmniej jeden głos. Uzupełnij brakujące kategorie i spróbuj ponownie.',
+                $missing->pluck('title')->all(),
+            ), 422);
         }
 
         try {
