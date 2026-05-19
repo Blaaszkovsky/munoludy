@@ -11,9 +11,18 @@ class TurnstileVerifier
 
     public function verify(?string $token, ?string $ip = null): bool
     {
+        $siteKey = config('munoludy.turnstile.site_key');
         $secret = config('munoludy.turnstile.secret_key');
+
+        // Turnstile w ogóle niewłączony (brak OBU kluczy) → świadomie pomijamy
+        // weryfikację (symetrycznie do frontu, który bez site_key nie pokazuje widgetu).
+        if (!$siteKey && !$secret) {
+            return true;
+        }
+
+        // site_key ustawiony, ale brak secret = błędna konfiguracja → fail-closed w prod.
         if (!$secret) {
-            return app()->environment('local', 'testing'); // fail-open locally, fail-closed in prod
+            return app()->environment('local', 'testing');
         }
         if (!$token) {
             return false;

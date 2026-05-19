@@ -284,7 +284,21 @@ Po **każdej** zmianie `.env` uruchom ponownie `php artisan config:cache`.
 2. Wklej **Site Key** i **Secret Key** do `.env` (`TURNSTILE_*`).
 3. `php artisan config:cache`.
 
-Jeśli klucze puste — weryfikacja jest pomijana (dzięki temu działa lokalnie).
+**Włączanie / wyłączanie Turnstile:**
+
+- **OBA** klucze puste (`TURNSTILE_SITE_KEY=` i `TURNSTILE_SECRET_KEY=`) →
+  Turnstile jest **wyłączony**: widget się nie pokazuje, a backend pomija
+  weryfikację (rejestracja działa). Tak zostawiamy „na razie".
+- **OBA** klucze ustawione → Turnstile aktywny i wymagany.
+- ⚠️ Ustawiony sam `TURNSTILE_SITE_KEY` bez `TURNSTILE_SECRET_KEY` na
+  produkcji = **błędna konfiguracja → rejestracja jest blokowana**
+  (fail-closed). Albo ustaw oba, albo wyczyść oba.
+
+Po każdej zmianie tych zmiennych: `php artisan config:cache`.
+
+Nawet z wyłączonym Turnstile rejestracja ma inne warstwy anty-bot: honeypot,
+kontrola czasu wypełnienia formularza, rate limiting i blokada e-maili
+disposable.
 
 ---
 
