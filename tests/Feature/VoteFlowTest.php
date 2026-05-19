@@ -84,6 +84,13 @@ it('blocks submission when a category has no vote', function () {
         ->assertSessionHasErrors('vote');
 
     expect($this->p->fresh()->voted_at)->toBeNull();
+
+    // Strona podsumowania nie może być cache'owana (Cloudflare/CDN),
+    // inaczej komunikaty walidacji nie pojawią się po przekierowaniu.
+    // Symfony sortuje dyrektywy alfabetycznie — ważne, że jest 'no-store'.
+    $this->get("/glosowanie/$hash/podsumowanie")
+        ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-cache, no-store, private')
+        ->assertHeader('CDN-Cache-Control', 'no-store');
 });
 
 it('rejects wrong access code', function () {

@@ -317,7 +317,40 @@ W koncie user.com muszą istnieć:
 
 ---
 
-## 13. Test produkcyjny (smoke test)
+## 13. Cloudflare — cache stron dynamicznych
+
+Trasy `/` (po rejestracji), `/rejestracja` i całe `/glosowanie/*` zależą od
+sesji. Aplikacja wysyła na nich nagłówki `Cache-Control: no-store, private`
+oraz `CDN-Cache-Control: no-store`, więc przy **domyślnym** trybie cache
+Cloudflare (Standard) działają poprawnie.
+
+⚠️ Jeśli masz **Page Rule / Cache Rule z „Cache Everything"** (albo agresywny
+APO), Cloudflare może zignorować te nagłówki i serwować z brzegu starą stronę —
+objaw: po próbie wysłania głosu z pustą kategorią **nie pokazują się**
+komunikaty „W każdej kategorii musisz oddać co najmniej jeden głos…" ani
+„Ta kategoria wymaga co najmniej jednego głosu". Po wyłączeniu cache działa.
+
+Napraw to w Cloudflare jedną z dróg (zalecana pierwsza):
+
+- **Cache Rule – Bypass cache** (Caching → Cache Rules → Create):
+  - Gdy: `URI Path` `starts with` `/glosowanie/` **OR** `URI Path` equals
+    `/rejestracja` **OR** `URI Path` equals `/`
+  - Then: **Bypass cache**
+- albo **Bypass Cache on Cookie**: w regule dla „Cache Everything" dodaj
+  warunek omijania cache, gdy występuje cookie `laravel_session` lub
+  `munoludy_session` / `XSRF-TOKEN` (czyli dla zalogowanych/uczestników).
+- albo zawęź regułę „Cache Everything" wyłącznie do statyków
+  (`/build/*`, `/images/*`, `/fonts/*`), a nie do całej domeny.
+
+Po zmianie wyczyść cache: Cloudflare → Caching → **Purge Everything**.
+Nie cache'uj `/glosowanie/*` — to strony chronione kodem dostępu (cache na
+CDN groziłby też wyciekiem cudzego draftu/podsumowania).
+
+`/wyniki` można spokojnie cache'ować (publiczne, bez danych sesji).
+
+---
+
+## 14. Test produkcyjny (smoke test)
 
 1. `https://ml.muno.pl/` — landing, logo MUNOLUDY (węższe, max 480px) jest
    linkiem do `MUNOLUDY_LOGO_URL`, w stopce/nagłówku „biletomat" małą literą.
@@ -336,7 +369,7 @@ W koncie user.com muszą istnieć:
 
 ---
 
-## 14. Aktualizacje (kolejne wdrożenia)
+## 15. Aktualizacje (kolejne wdrożenia)
 
 ```bash
 cd ~/domains/ml.muno.pl/app
@@ -369,7 +402,7 @@ echo "Deploy OK."
 
 ---
 
-## 15. Backup (cron w DirectAdmin)
+## 16. Backup (cron w DirectAdmin)
 
 DirectAdmin → **Cron Jobs** → dodaj zadanie codziennie o 3:00:
 
@@ -382,7 +415,7 @@ Wcześniej `mkdir -p ~/backups`. Trzymaj backupy poza katalogiem publicznym
 
 ---
 
-## 16. Typowe problemy na DirectAdmin
+## 17. Typowe problemy na DirectAdmin
 
 | Problem | Rozwiązanie |
 |---------|-------------|
@@ -397,10 +430,11 @@ Wcześniej `mkdir -p ~/backups`. Trzymaj backupy poza katalogiem publicznym
 | user.com 401 | Zły `USER_COM_API_KEY` — klucz musi być z `kicket.user.com` |
 | user.com 404 na subscribe | Lista 17 nie istnieje — utwórz w user.com lub zmień ID w panelu Edycji |
 | 429 przy rejestracji | Limit antyspamowy (IP+e-mail). Reset: `php artisan cache:clear` |
+| Brak komunikatów walidacji głosowania, znika po wyłączeniu cache CF | Cloudflare „Cache Everything" cache'uje `/glosowanie/*` — patrz §13 (Cache Rule Bypass / Bypass on Cookie) i Purge Everything |
 
 ---
 
-## 17. Checklista przed ogłoszeniem
+## 18. Checklista przed ogłoszeniem
 
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, `APP_KEY` ustawiony
 - [ ] HTTPS działa, Force SSL włączony, `SESSION_SECURE_COOKIE=true`
@@ -408,7 +442,11 @@ Wcześniej `mkdir -p ~/backups`. Trzymaj backupy poza katalogiem publicznym
       (`https://ml.muno.pl/.env` → 403/404)
 - [ ] `php artisan config:cache route:cache view:cache` wykonane
 - [ ] Panel admina pod losowym slugiem, konto super-admina utworzone
-- [ ] Turnstile aktywny, user.com (lista 17 + atrybuty + automatyzacje) gotowe
-- [ ] Smoke test §13 przeszedł, w tym blokada wysyłki z pustą kategorią
+- [ ] Turnstile: oba klucze ustawione (aktywny) **albo** oba puste (świadomie
+      wyłączony); user.com (lista 17 + atrybuty + automatyzacje) gotowe
+- [ ] Cloudflare nie cache'uje `/glosowanie/*`, `/rejestracja`, `/` po
+      rejestracji (§13) — sprawdzone z włączonym cache
+- [ ] Smoke test §14 przeszedł, w tym blokada wysyłki z pustą kategorią
+      (komunikaty widoczne **przy włączonym** cache Cloudflare)
 - [ ] Backup cron działa, katalog backupów poza `public_html`
 ```

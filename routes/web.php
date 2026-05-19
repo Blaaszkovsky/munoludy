@@ -9,9 +9,9 @@ Route::get('/', [LandingController::class, 'show'])->name('landing');
 
 Route::post('/rejestracja', [LandingController::class, 'register'])
     ->name('register')
-    ->middleware('throttle:registration');
+    ->middleware(['throttle:registration', 'nocache']);
 
-Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->group(function () {
+Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->middleware('nocache')->group(function () {
     Route::get('/', 'start')->name('vote.start');
     Route::post('/kod', 'verifyCode')->middleware('throttle:vote-code')->name('vote.verify-code');
     Route::get('/krok/{n}', 'step')->name('vote.step')->whereNumber('n');
