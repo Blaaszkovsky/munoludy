@@ -17,7 +17,7 @@
                 <x-form-card>
                     <h2 class="text-3xl md:text-4xl mb-4 font-heading text-[var(--munoludy-text)]">{{ $content['form_title'] }}</h2>
                     <p class="text-white/80 mb-8 text-sm md:text-base font-body">{{ $content['form_subtitle'] }}</p>
-                    <form method="POST" action="{{ route('register') }}" class="space-y-6">
+                    <form method="POST" action="{{ route('register') }}" class="space-y-6" id="register-form">
                         @csrf
                         <input type="text" name="website" class="hidden" tabindex="-1" autocomplete="off">
                         <input type="hidden" name="render_ts" value="{{ $renderTs }}">
@@ -44,6 +44,60 @@
                         </div>
                     </form>
                 </x-form-card>
+                @push('scripts')
+                <script>
+                /*
+                 * Odporne na Cloudflare "Cache Everything" pobranie świeżego
+                 * tokenu CSRF. Strona "/" bywa serwowana z cache krawędziowego
+                 * CF ze WSPÓLNYM, przeterminowanym tokenem (→ 419 na Safari/iOS).
+                 * Endpoint /csrf-token wołamy z UNIKALNYM query stringiem, więc
+                 * CF nigdy nie ma trafienia w cache → zawsze origin → świeża
+                 * sesja (Set-Cookie nieobcięty na MISS) + pasujący token.
+                 */
+                (function () {
+                    var form = document.getElementById('register-form');
+                    if (!form) return;
+                    var tokenInput = form.querySelector('input[name="_token"]');
+                    if (!tokenInput) return;
+
+                    function refreshToken() {
+                        var url = '/csrf-token?_=' + Date.now() + '_' +
+                            Math.random().toString(36).slice(2);
+                        return fetch(url, {
+                            method: 'GET',
+                            credentials: 'same-origin',
+                            cache: 'no-store',
+                            headers: { 'Accept': 'application/json' }
+                        })
+                        .then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (data) {
+                            if (data && data.token) { tokenInput.value = data.token; }
+                        })
+                        .catch(function () { /* fail-open: zostaje token z @csrf */ });
+                    }
+
+                    // 1) Rozgrzej sesję od razu — token gotowy zanim user wyśle.
+                    refreshToken();
+
+                    // 2) Gwarancja świeżości w chwili POST. Walidacja HTML5
+                    //    (required/email) odpala się PRZED tym handlerem, więc
+                    //    w tym miejscu formularz jest już poprawny.
+                    var submitting = false;
+                    form.addEventListener('submit', function (e) {
+                        if (submitting) return; // po refreshu — przepuść natywnie
+                        e.preventDefault();
+                        refreshToken().finally(function () {
+                            submitting = true;
+                            if (typeof form.requestSubmit === 'function') {
+                                form.requestSubmit();
+                            } else {
+                                form.submit();
+                            }
+                        });
+                    });
+                })();
+                </script>
+                @endpush
             @endif
         </div>
     </main>
