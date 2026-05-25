@@ -146,13 +146,15 @@ class VoteController extends Controller
             return redirect()->route('vote.thank-you', ['hash' => $hash]);
         }
 
-        try {
-            $userCom->tagVoted($participant->fresh(), config('munoludy.user_com.voted_tag_name'));
-        } catch (\Throwable $e) {
-            Log::error('user.com tag after vote failed', [
-                'participant_id' => $participant->id,
-                'error' => $e->getMessage(),
-            ]);
+        if ($participant->type->value !== 'jury') {
+            try {
+                $userCom->tagVoted($participant->fresh(), config('munoludy.user_com.voted_tag_name'));
+            } catch (\Throwable $e) {
+                Log::error('user.com tag after vote failed', [
+                    'participant_id' => $participant->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         $this->session->clear();
