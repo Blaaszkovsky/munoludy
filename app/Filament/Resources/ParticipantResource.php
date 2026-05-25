@@ -11,6 +11,7 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ParticipantResource extends Resource
 {
@@ -23,6 +24,11 @@ class ParticipantResource extends Resource
     protected static ?string $navigationGroup = 'Głosowanie';
     protected static ?int $navigationSort = 1;
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->where('type', 'public');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -30,10 +36,6 @@ class ParticipantResource extends Resource
                 Forms\Components\TextInput::make('edition_id')
                     ->required()
                     ->numeric(),
-                Forms\Components\TextInput::make('type')
-                    ->required()
-                    ->maxLength(255)
-                    ->default('public'),
                 Forms\Components\TextInput::make('email')
                     ->email()
                     ->required()
@@ -70,11 +72,6 @@ class ParticipantResource extends Resource
                         Infolists\Components\TextEntry::make('email')
                             ->label('E-mail')
                             ->copyable(),
-                        Infolists\Components\TextEntry::make('type')
-                            ->label('Typ')
-                            ->badge()
-                            ->formatStateUsing(fn ($state) => (is_string($state) ? $state : $state?->value) === 'public' ? 'Publiczność' : 'Jury')
-                            ->color(fn ($state) => (is_string($state) ? $state : $state?->value) === 'public' ? 'primary' : 'warning'),
                         Infolists\Components\TextEntry::make('edition.name')
                             ->label('Edycja'),
                         Infolists\Components\TextEntry::make('access_code')
@@ -160,9 +157,6 @@ class ParticipantResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('email')->searchable(),
-                Tables\Columns\TextColumn::make('type')
-                    ->badge()
-                    ->color(fn ($state) => (is_string($state) ? $state : $state?->value) === 'public' ? 'primary' : 'warning'),
                 Tables\Columns\TextColumn::make('access_code')->label('Kod'),
                 Tables\Columns\TextColumn::make('link_hash')
                     ->label('Link')
@@ -172,10 +166,6 @@ class ParticipantResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('type')->options([
-                    'public' => 'Publiczność',
-                    'jury' => 'Jury',
-                ]),
                 Tables\Filters\SelectFilter::make('edition_id')->relationship('edition', 'name'),
                 Tables\Filters\TernaryFilter::make('voted_at')->label('Zagłosował')
                     ->nullable(),
@@ -191,9 +181,7 @@ class ParticipantResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array
