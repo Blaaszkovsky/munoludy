@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AccessCodeRequest;
 use App\Http\Requests\SubmitVoteRequest;
+use App\Models\JuryMember;
 use App\Models\PageContent;
 use App\Models\Participant;
 use App\Models\Question;
@@ -23,6 +24,14 @@ class VoteController extends Controller
         $participant = $this->resolveParticipant($hash);
         if ($participant->hasVoted()) {
             return $this->renderThankYou($participant);
+        }
+        if ($participant->type->value === 'jury') {
+            $jury = JuryMember::where('edition_id', $participant->edition_id)
+                ->where('email', $participant->email)
+                ->first();
+            if ($jury && $jury->link_hash) {
+                return redirect()->route('jury.vote.start', ['hash' => $jury->link_hash]);
+            }
         }
         $edition = $participant->edition;
         if (!$edition->isVotingOpen()) {

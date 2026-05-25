@@ -3,15 +3,12 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\JuryMemberResource\Pages;
-use App\Filament\Resources\JuryMemberResource\RelationManagers;
 use App\Models\JuryMember;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class JuryMemberResource extends Resource
 {
@@ -31,6 +28,10 @@ class JuryMemberResource extends Resource
             Forms\Components\TextInput::make('email')->label('E-mail')->email()->required(),
             Forms\Components\TextInput::make('display_name')->label('Imię i nazwisko'),
             Forms\Components\Textarea::make('notes')->label('Notatki')->rows(3),
+            Forms\Components\Placeholder::make('voting_url')
+                ->label('Link do głosowania')
+                ->content(fn (?JuryMember $record) => $record?->votingUrl() ?? '—')
+                ->visibleOn('edit'),
         ]);
     }
 
@@ -38,24 +39,35 @@ class JuryMemberResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('edition_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('edition.name')
+                    ->label('Edycja')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('display_name')
+                    ->label('Imię i nazwisko')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('voting_url')
+                    ->label('Link do głosowania')
+                    ->state(fn (JuryMember $record) => $record->votingUrl())
+                    ->copyable()
+                    ->copyMessage('Skopiowano link')
+                    ->limit(40)
+                    ->toggleable(),
+                Tables\Columns\IconColumn::make('has_voted')
+                    ->label('Zagłosował')
+                    ->state(fn (JuryMember $record) => $record->hasVoted())
+                    ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Dodano')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('edition_id')
+                    ->label('Edycja')
+                    ->relationship('edition', 'name'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -69,9 +81,7 @@ class JuryMemberResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

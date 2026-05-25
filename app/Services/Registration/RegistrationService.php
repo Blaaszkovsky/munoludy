@@ -4,7 +4,6 @@ namespace App\Services\Registration;
 
 use App\Enums\ParticipantType;
 use App\Models\Edition;
-use App\Models\JuryMember;
 use App\Models\Participant;
 use App\Services\Content\TokenGenerator;
 use App\Services\UserCom\UserComSyncService;
@@ -20,18 +19,14 @@ class RegistrationService
 
     public function register(Edition $edition, string $email, array $meta): Participant
     {
-        $type = JuryMember::isJuryEmail($edition->id, $email)
-            ? ParticipantType::Jury
-            : ParticipantType::Public_;
-
-        return DB::transaction(function () use ($edition, $email, $type, $meta) {
+        return DB::transaction(function () use ($edition, $email, $meta) {
             $participant = Participant::firstOrNew([
                 'edition_id' => $edition->id,
                 'email' => $email,
             ]);
 
             if (!$participant->exists) {
-                $participant->type = $type;
+                $participant->type = ParticipantType::Public_;
                 $participant->link_hash = $this->tokens->uniqueLinkHash();
                 $participant->access_code = $this->tokens->sixDigitCode();
                 $participant->consented_privacy = $meta['privacy'] ?? false;

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Public\JuryVoteController;
 use App\Http\Controllers\Public\LandingController;
 use App\Http\Controllers\Public\ResultsController;
 use App\Http\Controllers\Public\VoteController;
@@ -29,6 +30,11 @@ Route::get('/csrf-token', fn () => response()->json(['token' => csrf_token()]))
 Route::post('/rejestracja', [LandingController::class, 'register'])
     ->name('register')
     ->middleware(['throttle:registration', 'nocache']);
+
+Route::prefix('jury/{hash}')->controller(JuryVoteController::class)->middleware('nocache')->group(function () {
+    Route::get('/', 'start')->name('jury.vote.start');
+    Route::post('/weryfikacja', 'verifyEmail')->middleware('throttle:vote-code')->name('jury.vote.verify-email');
+});
 
 Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->middleware('nocache')->group(function () {
     Route::get('/', 'start')->name('vote.start');

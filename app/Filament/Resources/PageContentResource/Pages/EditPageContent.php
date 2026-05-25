@@ -27,7 +27,8 @@ class EditPageContent extends EditRecord
 
         return match ($view) {
             'landing' => $this->landingSchema(),
-            'vote_start_public', 'vote_start_jury' => $this->voteStartSchema(),
+            'vote_start_public' => $this->voteStartSchema('public'),
+            'vote_start_jury' => $this->voteStartSchema('jury'),
             'vote_thank_you' => $this->voteThankYouSchema(),
             'results' => $this->resultsSchema(),
             'vote_closed' => $this->voteClosedSchema(),
@@ -133,8 +134,20 @@ class EditPageContent extends EditRecord
         ];
     }
 
-    protected function voteStartSchema(): array
+    protected function voteStartSchema(string $audience = 'public'): array
     {
+        $formSection = $audience === 'jury'
+            ? Section::make('Formularz weryfikacji e-mail')->collapsible()->schema([
+                TextInput::make('content.email_label')->label('Etykieta pola')->required(),
+                TextInput::make('content.email_placeholder')->label('Placeholder'),
+                TextInput::make('content.start_button')->label('Tekst przycisku')->required(),
+            ])->columns(2)
+            : Section::make('Formularz kodu dostępu')->collapsible()->schema([
+                TextInput::make('content.code_label')->label('Etykieta pola')->required(),
+                TextInput::make('content.code_placeholder')->label('Placeholder'),
+                TextInput::make('content.start_button')->label('Tekst przycisku')->required(),
+            ])->columns(2);
+
         return [
             Section::make('Nagłówek')->collapsible()->schema([
                 TextInput::make('content.title')->label('Tytuł')->required(),
@@ -160,11 +173,7 @@ class EditPageContent extends EditRecord
                 TextInput::make('content.signature_role')->label('Funkcja / rola'),
             ])->columns(2),
 
-            Section::make('Formularz kodu dostępu')->collapsible()->schema([
-                TextInput::make('content.code_label')->label('Etykieta pola')->required(),
-                TextInput::make('content.code_placeholder')->label('Placeholder'),
-                TextInput::make('content.start_button')->label('Tekst przycisku')->required(),
-            ])->columns(2),
+            $formSection,
 
             $this->ogSection(),
         ];
