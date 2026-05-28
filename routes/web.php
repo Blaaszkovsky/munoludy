@@ -46,4 +46,8 @@ Route::prefix('glosowanie/{hash}')->controller(VoteController::class)->middlewar
     Route::get('/dziekujemy', 'thankYou')->name('vote.thank-you');
 });
 
+Route::get('/wyniki/podglad/{editionSlug}', [ResultsController::class, 'preview'])
+    ->middleware(['auth', 'nocache'])
+    ->name('results.preview');
+
 Route::get('/wyniki/{editionSlug?}', [ResultsController::class, 'index'])->name('results');

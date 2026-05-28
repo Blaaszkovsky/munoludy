@@ -6,8 +6,6 @@ use App\Filament\Resources\AnswerGroupResource\Pages;
 use App\Models\Answer;
 use App\Models\AnswerAlias;
 use App\Models\AnswerGroup;
-use App\Models\Edition;
-use App\Models\Question;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -163,22 +161,65 @@ class AnswerGroupResource extends Resource
                     ->icon('heroicon-o-arrows-right-left')
                     ->color('warning')
                     ->requiresConfirmation()
-                    ->modalHeading('Scalanie grup odpowiedzi')
-                    ->modalDescription('Ta operacja jest nieodwracalna. Wszystkie odpowiedzi i aliasy tej grupy zostaną przeniesione do grupy docelowej, a bieżąca grupa zostanie usunięta.')
-                    ->form([
-                        Forms\Components\Select::make('target_id')
-                            ->label('Grupa docelowa')
-                            ->options(fn ($record) => AnswerGroup::where('question_id', $record->question_id)
-                                ->where('id', '!=', $record->id)
-                                ->pluck('canonical_label', 'id'))
-                            ->searchable()
-                            ->required(),
-                    ])
-                    ->action(function ($record, array $data) {
-                        $target = AnswerGroup::find($data['target_id']);
+                    ->modalHeading(fn (AnswerGroup $record) => 'Scalanie w kategorii: ' . ($record->question?->title ?? '—'))
+                    ->modalDescription('Wybierz grupę docelową. Lista zawiera wyłącznie grupy z tej samej kategorii. Operacja jest nieodwracalna — wszystkie odpowiedzi i aliasy bieżącej grupy zostaną przeniesione do grupy docelowej, a bieżąca grupa zostanie usunięta.')
+                    ->form(function (AnswerGroup $record) {
+                        $suggested = $record->suggestMergeCandidates(8);
+
+                        $suggestedOptions = $suggested
+                            ->mapWithKeys(function (AnswerGroup $g) {
+                                $score = (int) round((float) $g->getAttribute('similarity_score'));
+                                $label = $g->canonical_label . ' — ' . $score . '% podobieństwa'
+                                    . ' · ' . (int) $g->aggregated_count . ' wskazań';
+                                return [$g->id => $label];
+                            })
+                            ->all();
+
+                        return [
+                            Forms\Components\Placeholder::make('source_info')
+                                ->label('Scalasz')
+                                ->content(fn () => $record->canonical_label
+                                    . ' (kategoria: ' . ($record->question?->title ?? '—') . ')'),
+
+                            Forms\Components\Radio::make('target_id')
+                                ->label('Sugerowane grupy do scalenia')
+                                ->options($suggestedOptions)
+                                ->helperText('Sugestie wyliczone automatycznie na podstawie podobieństwa nazw i aliasów w obrębie tej samej kategorii.')
+                                ->visible(!empty($suggestedOptions))
+                                ->dehydrated(fn ($state) => filled($state)),
+
+                            Forms\Components\Select::make('target_id_fallback')
+                                ->label(empty($suggestedOptions) ? 'Grupa docelowa' : 'lub wybierz dowolną grupę z tej kategorii')
+                                ->options(fn () => AnswerGroup::where('question_id', $record->question_id)
+                                    ->where('id', '!=', $record->id)
+                                    ->orderBy('canonical_label')
+                                    ->pluck('canonical_label', 'id'))
+                                ->searchable()
+                                ->preload()
+                                ->dehydrated(fn ($state) => filled($state)),
+                        ];
+                    })
+                    ->action(function (AnswerGroup $record, array $data) {
+                        $targetId = $data['target_id'] ?? $data['target_id_fallback'] ?? null;
+                        $target = $targetId ? AnswerGroup::find($targetId) : null;
+
                         if (! $target) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Nie wybrano grupy docelowej')
+                                ->send();
                             return;
                         }
+
+                        if ($target->question_id !== $record->question_id) {
+                            \Filament\Notifications\Notification::make()
+                                ->danger()
+                                ->title('Nie można scalać między kategoriami')
+                                ->body('Bieżąca grupa i docelowa muszą należeć do tej samej kategorii.')
+                                ->send();
+                            return;
+                        }
+
                         Answer::where('answer_group_id', $record->id)
                             ->update(['answer_group_id' => $target->id]);
                         AnswerAlias::where('answer_group_id', $record->id)
@@ -187,10 +228,118 @@ class AnswerGroupResource extends Resource
                         $target->increment('aggregated_points', (int) $record->aggregated_points);
                         $target->update(['is_locked' => true]);
                         $record->delete();
+
+                        \Filament\Notifications\Notification::make()
+                            ->success()
+                            ->title('Scalono z grupą: ' . $target->canonical_label)
+                            ->send();
                     }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('mergeBulk')
+                        ->label('Scal zaznaczone w jedną grupę')
+                        ->icon('heroicon-o-arrows-pointing-in')
+                        ->color('warning')
+                        ->requiresConfirmation()
+                        ->modalHeading('Masowe scalanie grup odpowiedzi')
+                        ->modalDescription('Wszystkie zaznaczone grupy zostaną scalone w jedną wybraną grupę docelową. Operacja jest nieodwracalna i działa tylko w obrębie jednej kategorii.')
+                        ->form(function (\Illuminate\Database\Eloquent\Collection $records) {
+                            $questionIds = $records->pluck('question_id')->unique();
+
+                            if ($questionIds->count() > 1) {
+                                return [
+                                    Forms\Components\Placeholder::make('error')
+                                        ->label('Błąd')
+                                        ->content('Zaznaczone grupy należą do różnych kategorii. Zaznacz wyłącznie grupy z jednej kategorii.'),
+                                ];
+                            }
+
+                            $records = $records->loadMissing('question');
+                            $categoryTitle = $records->first()?->question?->title ?? '—';
+
+                            // Default target = group with the most votes/points.
+                            $default = $records->sortByDesc(fn (AnswerGroup $g) => $g->finalPoints())->first();
+
+                            $options = $records
+                                ->sortByDesc(fn (AnswerGroup $g) => $g->finalPoints())
+                                ->mapWithKeys(fn (AnswerGroup $g) => [
+                                    $g->id => $g->canonical_label
+                                        . ' — ' . $g->finalPoints() . ' pkt · '
+                                        . (int) $g->aggregated_count . ' wskazań',
+                                ])
+                                ->all();
+
+                            return [
+                                Forms\Components\Placeholder::make('info')
+                                    ->label('Kategoria')
+                                    ->content($categoryTitle . ' · zaznaczono ' . $records->count() . ' grup'),
+
+                                Forms\Components\Select::make('target_id')
+                                    ->label('Grupa docelowa (wszystkie pozostałe zostaną do niej scalone)')
+                                    ->options($options)
+                                    ->default($default?->id)
+                                    ->required()
+                                    ->searchable(),
+                            ];
+                        })
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records, array $data) {
+                            $questionIds = $records->pluck('question_id')->unique();
+                            if ($questionIds->count() > 1) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Różne kategorie')
+                                    ->body('Zaznaczone grupy muszą należeć do tej samej kategorii.')
+                                    ->send();
+                                return;
+                            }
+
+                            $targetId = (int) ($data['target_id'] ?? 0);
+                            $target = AnswerGroup::find($targetId);
+
+                            if (! $target) {
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Brak grupy docelowej')
+                                    ->send();
+                                return;
+                            }
+
+                            $sources = $records->reject(fn (AnswerGroup $g) => $g->id === $target->id);
+
+                            if ($sources->isEmpty()) {
+                                \Filament\Notifications\Notification::make()
+                                    ->warning()
+                                    ->title('Nic do scalenia')
+                                    ->body('Zaznaczono tylko grupę docelową.')
+                                    ->send();
+                                return;
+                            }
+
+                            $sourceIds = $sources->pluck('id')->all();
+
+                            \DB::transaction(function () use ($sourceIds, $sources, $target) {
+                                Answer::whereIn('answer_group_id', $sourceIds)
+                                    ->update(['answer_group_id' => $target->id]);
+                                AnswerAlias::whereIn('answer_group_id', $sourceIds)
+                                    ->update(['answer_group_id' => $target->id]);
+
+                                $countSum = (int) $sources->sum('aggregated_count');
+                                $pointsSum = (int) $sources->sum('aggregated_points');
+
+                                $target->increment('aggregated_count', $countSum);
+                                $target->increment('aggregated_points', $pointsSum);
+                                $target->update(['is_locked' => true]);
+
+                                AnswerGroup::whereIn('id', $sourceIds)->delete();
+                            });
+
+                            \Filament\Notifications\Notification::make()
+                                ->success()
+                                ->title('Scalono ' . count($sourceIds) . ' grup w: ' . $target->canonical_label)
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);

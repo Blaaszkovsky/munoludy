@@ -12,6 +12,7 @@ use App\Models\PageContent;
 use App\Models\Participant;
 use App\Models\Question;
 use Artesaos\SEOTools\Facades\SEOTools;
+use Illuminate\Support\Facades\Auth;
 
 class ResultsController extends Controller
 {
@@ -25,6 +26,28 @@ class ResultsController extends Controller
 
         abort_unless($edition && $edition->status === EditionStatus::ResultsPublished, 404);
 
+        return $this->renderResults($edition, preview: false);
+    }
+
+    /**
+     * Admin-only preview of the results page. Shows the page even when the
+     * edition is not yet ResultsPublished, so organizers can review layout and
+     * data while the plebiscite is still running.
+     */
+    public function preview(string $editionSlug)
+    {
+        if (! Auth::check()) {
+            abort(404);
+        }
+
+        $edition = Edition::where('slug', $editionSlug)->first();
+        abort_unless($edition, 404);
+
+        return $this->renderResults($edition, preview: true);
+    }
+
+    protected function renderResults(Edition $edition, bool $preview)
+    {
         $content = PageContent::where('edition_id', $edition->id)
             ->where('view', 'results')
             ->first();
@@ -38,13 +61,26 @@ class ResultsController extends Controller
         SEOTools::setDescription($content?->og_description ?? 'Wyniki plebiscytu Munoludy.');
         SEOTools::opengraph()->setUrl(request()->url());
 
-        return view('results', [
+        if ($preview) {
+            // Keep preview out of search engines and shared caches.
+            SEOTools::metatags()->addMeta('robots', 'noindex, nofollow, noarchive');
+        }
+
+        $response = response()->view('results', [
             'edition' => $edition,
             'content' => $content,
             'publicTops' => $publicTops,
             'juryTops' => $juryTops,
             'stats' => $stats,
+            'previewMode' => $preview,
         ]);
+
+        if ($preview) {
+            $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+            $response->headers->set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+        }
+
+        return $response;
     }
 
     /**
